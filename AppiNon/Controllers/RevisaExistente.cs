@@ -58,8 +58,6 @@ namespace AppiNon.Controllers
                 return StatusCode(StatusCodes.Status401Unauthorized, new { token = "" });
             }
 
-
-
         }
 
         public class VerificarUsuarioRequest
