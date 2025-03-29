@@ -28,13 +28,19 @@ namespace AppiNon.Controllers
         [Route("Validar")]
         public async Task<IActionResult> VerificarUsuario([FromBody] VerificarUsuarioRequest request)
         {
-            var usuarioExiste = await _context.Usuarios.AnyAsync(u => u.correo == request.Correo && u.contraseña_hash == request.ContraseñaH);
-            if (usuarioExiste)
+            // Obtener el usuario basado en el correo
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.correo == request.Correo);
+
+
+            if (usuario != null && BCrypt.Net.BCrypt.Verify(request.ContraseñaH, usuario.contraseña_hash))
             {
 
                 var keyBytes = Encoding.ASCII.GetBytes(secretkey);
                 var claims = new ClaimsIdentity();
+
                 claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, request.Correo));
+                claims.AddClaim(new Claim(ClaimTypes.Role,usuario.rol_id.ToString()));  // Añades el rol al token
 
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
@@ -49,13 +55,12 @@ namespace AppiNon.Controllers
                 string tokencreado = tokenHandler.WriteToken(tokenConfig);
 
 
-                return StatusCode(StatusCodes.Status200OK, new { token = tokencreado });
+                return StatusCode(StatusCodes.Status200OK, tokencreado);
 
             }
             else
             {
-
-                return StatusCode(StatusCodes.Status401Unauthorized, new { token = "" });
+                return StatusCode(StatusCodes.Status401Unauthorized," ");
             }
 
         }
@@ -64,6 +69,7 @@ namespace AppiNon.Controllers
         {
             public string Correo { get; set; }
             public string ContraseñaH { get; set; }
+
         }
 
 
