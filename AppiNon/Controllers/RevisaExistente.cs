@@ -51,20 +51,14 @@ namespace AppiNon.Controllers
 
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var tokenConfig = tokenHandler.CreateToken(tokenDescriptor);
-
                 string tokencreado = tokenHandler.WriteToken(tokenConfig);
-
-
                 return StatusCode(StatusCodes.Status200OK, tokencreado);
-
             }
             else
             {
                 return StatusCode(StatusCodes.Status401Unauthorized," ");
             }
-
         }
-
         public class VerificarUsuarioRequest
         {
             public string Correo { get; set; }
