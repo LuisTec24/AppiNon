@@ -14,7 +14,9 @@ namespace AppiNon.Controllers
 {
     [EnableCors("ReglasCors")]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
+
+
     [ApiController]
     public class LuisTableController : ControllerBase
     {
@@ -27,6 +29,7 @@ namespace AppiNon.Controllers
 
         // GET: api/LuisTableController
         [HttpGet]
+        [Authorize(Roles = "1,2")]
         public async Task<ActionResult<IEnumerable<LuisTable>>> GetLuisTables()
         {
             return await _context.LuisTables.ToListAsync();
@@ -49,6 +52,7 @@ namespace AppiNon.Controllers
         // PUT: api/LuisTableController/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
+        [Authorize(Roles = "1")] //
         public async Task<IActionResult> PutLuisTable(int id, LuisTable LuisTable)
         {
             if (id != LuisTable.Id)
@@ -80,6 +84,7 @@ namespace AppiNon.Controllers
         // POST: api/LuisTableController
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
+        [Authorize(Roles = "1")] //
         public async Task<ActionResult<LuisTable>> PostLuisTable(LuisTable LuisTable)
         {
             _context.LuisTables.Add(LuisTable);
@@ -90,6 +95,7 @@ namespace AppiNon.Controllers
 
         // DELETE: api/LuisTableController/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "1")] //
         public async Task<IActionResult> DeleteLuisTable(int id)
         {
             var LuisTable = await _context.LuisTables.FindAsync(id);

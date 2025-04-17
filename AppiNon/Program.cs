@@ -16,6 +16,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: reglascors, builder =>
     {
         builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+
     });
 });
 
@@ -29,6 +30,7 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<PinonBdContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+
 });
 
 builder.Configuration.AddJsonFile("appsettings.json");
@@ -51,8 +53,13 @@ builder.Services.AddAuthentication(config => {
     };
 });
 
-
-
+///Creo Roles''
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy => policy.RequireRole("1"));
+    options.AddPolicy("User", policy => policy.RequireRole("2"));
+    // Agrega más políticas según necesites
+});
 
 
 
