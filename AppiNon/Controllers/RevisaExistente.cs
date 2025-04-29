@@ -122,5 +122,28 @@ namespace AppiNon.Controllers
             return NoContent();
         }
 
+
+        [HttpPost]
+        [Authorize(Roles = "1")] // solo admin 
+        public async Task<IActionResult> CrearUsuario([FromBody] Usuarios nuevoUsuario)
+        {
+            // ignoramos cualquier id que haya mandado el cliente
+            nuevoUsuario.id = 0;
+
+            var existe = await _context.Usuarios.AnyAsync(u => u.correo == nuevoUsuario.correo);
+            if (existe)
+            {
+                return Conflict("el correo ya existe");
+            }
+
+            // hashea la contraseña
+            nuevoUsuario.contraseña_hash = BCrypt.Net.BCrypt.HashPassword(nuevoUsuario.contraseña_hash);
+
+            _context.Usuarios.Add(nuevoUsuario);
+            await _context.SaveChangesAsync();
+            return Ok(nuevoUsuario);
+        }
+
+
     }
 }
