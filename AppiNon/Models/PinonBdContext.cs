@@ -20,7 +20,9 @@ public partial class PinonBdContext : DbContext
 
     public virtual DbSet<LuisTable> LuisTables { get; set; }
 
+
     public virtual DbSet<Usuarios> Usuarios { get; set; }
+    public virtual DbSet<Producto> Producto { get; set; }
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -53,6 +55,20 @@ public partial class PinonBdContext : DbContext
             entity.Property(e => e.rol_id).HasMaxLength(255);
 
         });
+
+        /// Productos
+        modelBuilder.Entity<Producto>(entity =>
+        {
+            entity.HasKey(e => e.id_producto).HasName("PK__inventar__FF341C0DCFF70F53");
+            entity.ToTable("Inventario");
+            entity.Property(e => e.nombre_producto).HasMaxLength(255);
+            entity.Property(e => e.id_categoria).HasMaxLength(255);
+            entity.Property(e => e.unidad_medida).HasMaxLength(255);
+
+        });
+
+
+
 
         modelBuilder.Entity<LuisTable>(entity =>
         {
