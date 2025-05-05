@@ -1,14 +1,13 @@
 using AppiNon.Models;
+using AppiNon.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-
+using AppiNon.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
-
 
 var reglascors = "ReglasCors";
 builder.Services.AddCors(options =>
@@ -21,7 +20,9 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddHostedService<ReabastecimientoWorker>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -60,6 +61,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("User", policy => policy.RequireRole("2"));
     // Agrega más políticas según necesites
 });
+
+
+
 
 
 

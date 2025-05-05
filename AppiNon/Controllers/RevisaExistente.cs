@@ -12,98 +12,86 @@ namespace AppiNon.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class RevisaExistente : ControllerBase
+    public class RevisaExistenteController : ControllerBase
     {
-
         private readonly PinonBdContext _context;
         private readonly string secretkey;
 
-        public RevisaExistente(IConfiguration conf, PinonBdContext context)
+        public RevisaExistenteController(IConfiguration conf, PinonBdContext context)
         {
-            secretkey = conf.GetSection("settings").GetSection("secretkey").ToString();
+            secretkey = conf.GetSection("settings")["secretkey"];
             _context = context;
         }
 
-
-        [HttpPost]
+        [HttpPost("Validar")]
         [AllowAnonymous]
-        [Route("Validar")]
         public async Task<IActionResult> VerificarUsuario([FromBody] VerificarUsuarioRequest request)
         {
-            // Obtener el usuario basado en el correo
-            var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.correo == request.Correo);
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Correo == request.Correo);
 
-
-            if (usuario != null && BCrypt.Net.BCrypt.Verify(request.ContraseñaH, usuario.contraseña_hash))
+            if (usuario != null && BCrypt.Net.BCrypt.Verify(request.ContraseñaH, usuario.Contraseña_hash))
             {
-
                 var keyBytes = Encoding.ASCII.GetBytes(secretkey);
-                var claims = new ClaimsIdentity();
-
-                claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, request.Correo));
-                claims.AddClaim(new Claim(ClaimTypes.Role, usuario.rol_id.ToString()));  // Añades el rol al token
+                var claims = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, usuario.Correo),
+                    new Claim(ClaimTypes.Role, usuario.Rol_id.ToString())
+                });
 
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = claims,
-                    Expires = DateTime.UtcNow.AddMinutes(5),
+                    Expires = DateTime.UtcNow.AddMinutes(30),
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature)
                 };
 
                 var tokenHandler = new JwtSecurityTokenHandler();
-                var tokenConfig = tokenHandler.CreateToken(tokenDescriptor);
-                string tokencreado = tokenHandler.WriteToken(tokenConfig);
-                return StatusCode(StatusCodes.Status200OK, tokencreado);
+                var token = tokenHandler.CreateToken(tokenDescriptor);
+
+                return Ok(tokenHandler.WriteToken(token));
             }
-            else
-            {
-                return StatusCode(StatusCodes.Status401Unauthorized, " ");
-            }
+
+            return Unauthorized("Credenciales inválidas");
         }
 
-        public class VerificarUsuarioRequest
-        {
-            public string Correo { get; set; }
-            public string ContraseñaH { get; set; }
-
-        }
-
-        [Authorize]
-        //[Route("Validar")]
         [HttpGet]
         [Authorize(Roles = "1")]
-        public async Task<ActionResult<IEnumerable<Usuarios>>> GetLuisTables()
+        public async Task<ActionResult<IEnumerable<Usuarios>>> GetUsuarios()
         {
             return await _context.Usuarios.ToListAsync();
         }
 
+        [HttpPost]
+        [Authorize(Roles = "1")]
+        public async Task<IActionResult> CrearUsuario([FromBody] Usuarios nuevoUsuario)
+        {
+            if (await _context.Usuarios.AnyAsync(u => u.Correo == nuevoUsuario.Correo))
+                return Conflict("El correo ya existe");
 
+            nuevoUsuario.ID = 0;
+            nuevoUsuario.Contraseña_hash = BCrypt.Net.BCrypt.HashPassword(nuevoUsuario.Contraseña_hash);
+
+            _context.Usuarios.Add(nuevoUsuario);
+            await _context.SaveChangesAsync();
+            await RegistrarBitacora("INSERT", "Usuarios", nuevoUsuario.ID, $"Usuario creado: {nuevoUsuario.Correo}");
+
+            return Ok(nuevoUsuario);
+        }
 
         [HttpPut("{correo}")]
         [Authorize(Roles = "1")]
         public async Task<IActionResult> PutUsuarioPorCorreo(string correo, Usuarios usuarioActualizado)
         {
-            var usuarioExistente = await _context.Usuarios.FirstOrDefaultAsync(u => u.correo == correo);
-
+            var usuarioExistente = await _context.Usuarios.FirstOrDefaultAsync(u => u.Correo == correo);
             if (usuarioExistente == null)
-            {
                 return NotFound();
-            }
 
-            // actualiza manualmente los campos necesarios
-            usuarioExistente.nombre = usuarioActualizado.nombre;
-            usuarioExistente.contraseña_hash = usuarioActualizado.contraseña_hash;
-            usuarioExistente.rol_id = usuarioActualizado.rol_id;
+            usuarioExistente.Nombre = usuarioActualizado.Nombre;
+            usuarioExistente.Contraseña_hash = usuarioActualizado.Contraseña_hash;
+            usuarioExistente.Rol_id = usuarioActualizado.Rol_id;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                throw;
-            }
+            await _context.SaveChangesAsync();
+            await RegistrarBitacora("UPDATE", "Usuarios", usuarioExistente.ID, $"Usuario actualizado: {usuarioExistente.Correo}");
 
             return NoContent();
         }
@@ -112,38 +100,37 @@ namespace AppiNon.Controllers
         [Authorize(Roles = "1")]
         public async Task<IActionResult> DeleteUsuario(string correo)
         {
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.correo == correo);
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Correo == correo);
             if (usuario == null)
-            {
                 return NotFound();
-            }
+
             _context.Usuarios.Remove(usuario);
             await _context.SaveChangesAsync();
+            await RegistrarBitacora("DELETE", "Usuarios", usuario.ID, $"Usuario eliminado: {usuario.Correo}");
+
             return NoContent();
         }
 
-
-        [HttpPost]
-        [Authorize(Roles = "1")] // solo admin 
-        public async Task<IActionResult> CrearUsuario([FromBody] Usuarios nuevoUsuario)
+        private async Task RegistrarBitacora(string tipo, string entidad, int idEntidad, string descripcion)
         {
-            // ignoramos cualquier id que haya mandado el cliente
-            nuevoUsuario.id = 0;
-
-            var existe = await _context.Usuarios.AnyAsync(u => u.correo == nuevoUsuario.correo);
-            if (existe)
+            var bitacora = new Bitacora
             {
-                return Conflict("el correo ya existe");
-            }
+                Fecha = DateTime.Now,
+                Tipo_de_Modificacion = tipo,
+                ID_Usuario = 1, // puedes cambiar esto por el ID del usuario autenticado
+                Entidad = entidad,
+                ID_Entidad = idEntidad,
+                Descripcion = descripcion
+            };
 
-            // hashea la contraseña
-            nuevoUsuario.contraseña_hash = BCrypt.Net.BCrypt.HashPassword(nuevoUsuario.contraseña_hash);
-
-            _context.Usuarios.Add(nuevoUsuario);
+            _context.Bitacora.Add(bitacora);
             await _context.SaveChangesAsync();
-            return Ok(nuevoUsuario);
         }
 
-
+        public class VerificarUsuarioRequest
+        {
+            public string Correo { get; set; }
+            public string ContraseñaH { get; set; }
+        }
     }
 }

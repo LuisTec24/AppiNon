@@ -2,11 +2,15 @@
 {
     public class Usuarios
     {
-            public int id { get; set; }
-            public string nombre { get; set; }
-            public string correo { get; set; }
-            public string contraseña_hash { get; set; }
-            public int rol_id { get; set; }  
+        public int ID { get; set; }
+        public string Nombre { get; set; }
+        public string Correo { get; set; }
+        public string Contraseña_hash { get; set; }
 
+        public int Rol_id { get; set; }
+     //   public Roles Rol { get; set; }
+
+ //
     }
+
 }

@@ -1,74 +1,67 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using AppiNon.Models;
 
-namespace AppiNon.Controllers
+namespace AppiNon.Controllers 
 {
     [EnableCors("ReglasCors")]
     [Route("api/[controller]")]
     [Authorize]
 
-
     [ApiController]
+
     public class ProductoController : ControllerBase
     {
         private readonly PinonBdContext _context;
-
         public ProductoController(PinonBdContext context)
         {
             _context = context;
         }
 
-        // GET: api/ProductoController
         [HttpGet]
-        [Authorize(Roles = "1")]
+        [Authorize(Roles = "1,2")]
         public async Task<ActionResult<IEnumerable<Producto>>> GetProducto()
         {
             return await _context.Producto.ToListAsync();
         }
 
-        // GET: api/ProductoController/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Producto>> GetProducto(int id)
+        [HttpGet("{id_categoria:int}/{id_producto:int}")]
+        [Authorize(Roles = "1,2")]
+        public async Task<ActionResult<Producto>> GetProducto(int id_categoria, int id_producto)
         {
-            var Producto = await _context.Producto.FindAsync(id);
+            var producto = await _context.Producto.FindAsync(id_categoria, id_producto);
 
-            if (Producto == null)
+            if (producto == null)
             {
                 return NotFound();
             }
-
-            return Producto;
+            return producto;
         }
 
-        // PUT: api/ProductoController/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        [Authorize(Roles = "1")] //
-        public async Task<IActionResult> PutProducto(int id, Producto Producto)
+        [HttpPut("{id_categoria:int}/{id_producto:int}")]
+        [Authorize(Roles = "1")]
+        public async Task<IActionResult> PutProducto(int id_categoria, int id_producto, Producto producto)
         {
-            if (id != Producto.id_producto)
+            if (id_categoria != producto.id_categoria || id_producto != producto.id_producto)
             {
-                return BadRequest();
+                return BadRequest("Los identificadores no coinciden con el producto enviado.");
             }
 
-            _context.Entry(Producto).State = EntityState.Modified;
+            _context.Entry(producto).State = EntityState.Modified;
 
             try
             {
                 await _context.SaveChangesAsync();
+                await RegistrarBitacora("UPDATE", "Producto", producto.id_producto, $"Se actualizo el producto: {producto.nombre_producto}");
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ProductoExists(id))
+                if (!ProductoExists(id_categoria, id_producto))
                 {
                     return NotFound();
                 }
@@ -81,39 +74,57 @@ namespace AppiNon.Controllers
             return NoContent();
         }
 
-
-        // POST: api/ProductoController
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        [Authorize(Roles = "1")] //
-        public async Task<ActionResult<Producto>> PostProducto(Producto Producto)
+        [Authorize(Roles = "1")]
+        public async Task<ActionResult<Producto>> PostProducto(Producto producto)
         {
-            _context.Producto.Add(Producto);
+            _context.Producto.Add(producto);
             await _context.SaveChangesAsync();
+            await RegistrarBitacora("INSERT", "Producto", producto.id_producto, $"Se agrego el producto: {producto.nombre_producto}");
 
-            return CreatedAtAction("GetProducto", new { id = Producto.id_producto }, Producto);
+            return CreatedAtAction(nameof(GetProducto), new
+            {
+                id_categoria = producto.id_categoria,
+                id_producto = producto.id_producto
+            }, producto);
         }
 
-        // DELETE: api/ProductoController/5
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "1")] //
-        public async Task<IActionResult> DeleteProducto(int id)
+        [HttpDelete("{id_categoria:int}/{id_producto:int}")]
+        [Authorize(Roles = "1")]
+        public async Task<IActionResult> DeleteProducto(int id_categoria, int id_producto)
         {
-            var Producto = await _context.Producto.FindAsync(id);
-            if (Producto == null)
+            var producto = await _context.Producto.FindAsync(id_categoria, id_producto);
+            if (producto == null)
             {
                 return NotFound();
             }
 
-            _context.Producto.Remove(Producto);
+            _context.Producto.Remove(producto);
             await _context.SaveChangesAsync();
+            await RegistrarBitacora("DELETE", "Producto", producto.id_producto, $"Se elimino el producto: {producto.nombre_producto}");
 
             return NoContent();
         }
 
-        private bool ProductoExists(int id)
+        private bool ProductoExists(int id_categoria, int id_producto)
         {
-            return _context.Producto.Any(e => e.id_producto == id);
+            return _context.Producto.Any(e => e.id_categoria == id_categoria && e.id_producto == id_producto);
+        }
+
+        private async Task RegistrarBitacora(string tipo, string entidad, int idEntidad, string descripcion)
+        {
+            var bitacora = new Bitacora
+            {
+                Fecha = DateTime.Now,
+                Tipo_de_Modificacion = tipo,
+                ID_Usuario = 1, // aqui puedes cambiarlo por el ID del usuario logueado
+                Entidad = entidad,
+                ID_Entidad = idEntidad,
+                Descripcion = descripcion
+            };
+
+            _context.Bitacora.Add(bitacora);
+            await _context.SaveChangesAsync();
         }
     }
 }
