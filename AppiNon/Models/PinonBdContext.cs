@@ -12,10 +12,6 @@ public partial class PinonBdContext : DbContext
     public PinonBdContext(DbContextOptions<PinonBdContext> options)
         : base(options){}
 
-    public virtual DbSet<GomezTable> GomezTables { get; set; }
-    public virtual DbSet<LuisTable> LuisTables { get; set; }
-
-
     public virtual DbSet<Usuarios> Usuarios { get; set; }
     public virtual DbSet<Inventario> Inv { get; set; }
     public virtual DbSet<Roles> Roles { get; set; }
@@ -32,9 +28,7 @@ public partial class PinonBdContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Tablas independientes
-        modelBuilder.Entity<Categorias>(entity =>
-        {
+        modelBuilder.Entity<Categorias>(entity =>  {
             entity.HasKey(e => e.id_categoria);
             entity.Property(e => e.Categoria).HasMaxLength(255);
         });
@@ -53,7 +47,6 @@ public partial class PinonBdContext : DbContext
             entity.Property(e => e.Descripcion).HasMaxLength(255);
         });
 
-        // Tablas con relaciones
         modelBuilder.Entity<Producto>(entity =>
         {
             entity.HasKey(e => e.id_producto);
@@ -73,7 +66,7 @@ public partial class PinonBdContext : DbContext
                 .HasForeignKey(e => e.ID_Provedor)
                 .HasConstraintName("FK_Producto_Provedores");
         });
-        ////modelo
+       
         // Configuración de Pedidos
         modelBuilder.Entity<Pedido>(entity =>
         {
@@ -102,12 +95,9 @@ public partial class PinonBdContext : DbContext
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
-
         modelBuilder.Entity<Inventario>(entity =>
         {
             entity.HasKey(e => e.IdInventario);
-
-            // Cambiado a tipos correctos
             entity.Property(e => e.IdProducto).HasColumnType("int");
             entity.Property(e => e.StockActual).HasColumnType("int");
             entity.Property(e => e.StockMinimo).HasColumnType("int");
@@ -127,8 +117,7 @@ public partial class PinonBdContext : DbContext
             entity.Property(e => e.Nombre).HasMaxLength(100);
             entity.Property(e => e.Correo).HasMaxLength(100);
             entity.Property(e => e.Contraseña_hash).HasMaxLength(255);
-            entity.Property(e => e.Rol_id).HasColumnType("int"); // Cambiado a int
-
+            entity.Property(e => e.Rol_id).HasColumnType("int"); 
             // Relación con Roles
             entity.HasOne<Roles>()
                 .WithMany()
@@ -138,41 +127,13 @@ public partial class PinonBdContext : DbContext
         modelBuilder.Entity<Bitacora>(entity =>
         {
             entity.HasKey(e => e.ID);
-
             // Relación con Usuarios (FALTABA)
             entity.HasOne<Usuarios>()
                 .WithMany()
                 .HasForeignKey(e => e.ID_Usuario);
         });
 
-        //Extra
-        modelBuilder.Entity<GomezTable>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__GomezTab__3214EC07C9EE7BB3");
-
-            entity.ToTable("GomezTable");
-
-            entity.Property(e => e.Clave).HasMaxLength(255);
-            entity.Property(e => e.EsActivo).HasMaxLength(10);
-            entity.Property(e => e.Nombre).HasMaxLength(255);
-            entity.Property(e => e.Ocupacion).HasMaxLength(255);
-            entity.Property(e => e.Ubicacion).HasMaxLength(255);
-        });
-        modelBuilder.Entity<LuisTable>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__LuisTabl__3214EC07D9FC37EC");
-
-            entity.ToTable("LuisTable");
-
-            entity.Property(e => e.Clave).HasMaxLength(255);
-            entity.Property(e => e.EsActivo).HasMaxLength(10);
-            entity.Property(e => e.Nombre).HasMaxLength(255);
-            entity.Property(e => e.Ocupacion).HasMaxLength(255);
-            entity.Property(e => e.Ubicacion).HasMaxLength(255);
-        });
-
-
-        OnModelCreatingPartial(modelBuilder);
+          OnModelCreatingPartial(modelBuilder);
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

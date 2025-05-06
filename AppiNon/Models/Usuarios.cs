@@ -10,7 +10,6 @@
         public int Rol_id { get; set; }
      //   public Roles Rol { get; set; }
 
- //
     }
 
 }

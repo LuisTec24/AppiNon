@@ -24,14 +24,16 @@ namespace AppiNon.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "1,2")]
+        [Authorize(Policy = "Admin")]
+        [Authorize(Policy = "User")]
         public async Task<ActionResult<IEnumerable<Producto>>> GetProducto()
         {
             return await _context.Producto.ToListAsync();
         }
 
         [HttpGet("{id_categoria:int}/{id_producto:int}")]
-        [Authorize(Roles = "1,2")]
+        [Authorize(Policy = "Admin")]
+        [Authorize(Policy = "User")]
         public async Task<ActionResult<Producto>> GetProducto(int id_categoria, int id_producto)
         {
             var producto = await _context.Producto.FindAsync(id_categoria, id_producto);
@@ -43,13 +45,13 @@ namespace AppiNon.Controllers
             return producto;
         }
 
-        [HttpPut("{id_categoria:int}/{id_producto:int}")]
-        [Authorize(Roles = "1")]
-        public async Task<IActionResult> PutProducto(int id_categoria, int id_producto, Producto producto)
+        [HttpPut("{id_producto:int}")]
+        [Authorize(Policy = "Admin")]
+        public async Task<IActionResult> PutProducto(int id_producto, Producto producto)
         {
-            if (id_categoria != producto.id_categoria || id_producto != producto.id_producto)
+            if (id_producto != producto.id_producto)
             {
-                return BadRequest("Los identificadores no coinciden con el producto enviado.");
+                return BadRequest("El identificador no coincide con el producto enviado.");
             }
 
             _context.Entry(producto).State = EntityState.Modified;
@@ -57,11 +59,11 @@ namespace AppiNon.Controllers
             try
             {
                 await _context.SaveChangesAsync();
-                await RegistrarBitacora("UPDATE", "Producto", producto.id_producto, $"Se actualizo el producto: {producto.nombre_producto}");
+                await RegistrarBitacora("UPDATE", "Producto", producto.id_producto, $"Se actualizó el producto: {producto.nombre_producto}");
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ProductoExists(id_categoria, id_producto))
+                if (!ProductoExists(id_producto))
                 {
                     return NotFound();
                 }
@@ -75,7 +77,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "1")]
+        [Authorize(Policy = "Admin")]
         public async Task<ActionResult<Producto>> PostProducto(Producto producto)
         {
             _context.Producto.Add(producto);
@@ -90,7 +92,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpDelete("{id_categoria:int}/{id_producto:int}")]
-        [Authorize(Roles = "1")]
+        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> DeleteProducto(int id_categoria, int id_producto)
         {
             var producto = await _context.Producto.FindAsync(id_categoria, id_producto);
@@ -106,9 +108,9 @@ namespace AppiNon.Controllers
             return NoContent();
         }
 
-        private bool ProductoExists(int id_categoria, int id_producto)
+        private bool ProductoExists(int id_producto)
         {
-            return _context.Producto.Any(e => e.id_categoria == id_categoria && e.id_producto == id_producto);
+            return _context.Producto.Any(e => e.id_producto == id_producto);
         }
 
         private async Task RegistrarBitacora(string tipo, string entidad, int idEntidad, string descripcion)

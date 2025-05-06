@@ -25,14 +25,13 @@ namespace AppiNon.Models
 
     }
 
-
-
-
     //        public ICollection<Movimiento> Movimientos { get; set; }
 
     public class Inventario
     {
+        [Column("id_inventario")]  // Mapea EXACTAMENTE al nombre en BD
         public int IdInventario { get; set; }
+        [Column("id_producto")]    // Mapea EXACTAMENTE al nombre en BD
         public int IdProducto { get; set; }
         public int StockActual { get; set; }
         public int StockMinimo { get; set; }
@@ -46,8 +45,7 @@ namespace AppiNon.Models
     {
      public int ID { get; set; }
     public string Nombre_rol { get; set; }
-    public string Descripcion { get; set; }
-  
+        public string Descripcion { get; set; }
     }
 
 
@@ -82,11 +80,18 @@ namespace AppiNon.Models
 
         // Relaciones (opcional, para navegación)
         [ForeignKey("IdProducto")]
-        public virtual Producto Producto { get; set; }
+        public virtual Producto Producto { get; set; } = null!;
 
         [ForeignKey("IdProveedor")]
-        public virtual Proveedores Proveedor { get; set; }
+        public virtual Proveedores Proveedor { get; set; } = null!;
     }
+
+
+
+
+
+
+
 
 
 }

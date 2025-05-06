@@ -1,4 +1,5 @@
 ﻿using AppiNon.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,7 @@ namespace AppiNon.Controllers
     [EnableCors("ReglasCors")]
     [Route("api/[controller]")]
     [ApiController]
-    // [Authorize] // Desactivado como solicitaste
+     [Authorize] // Desactivado como solicitaste
     public class ProveedoresController : ControllerBase
     {
         private readonly PinonBdContext _context;
@@ -24,12 +25,14 @@ namespace AppiNon.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "Admin")]
         public async Task<ActionResult<IEnumerable<Proveedores>>> GetProveedores()
         {
             return await _context.Proveedores.ToListAsync();
         }
 
         [HttpGet("{id}")]
+        [Authorize(Policy = "Admin")]
         public async Task<ActionResult<Proveedores>> GetProveedores(int id)
         {
             var proveedor = await _context.Proveedores.FindAsync(id);
@@ -43,6 +46,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> PutProveedores(int id, Proveedores proveedor)
         {
             if (id != proveedor.ID_proveedor)
@@ -73,6 +77,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "Admin")]
         public async Task<ActionResult<Proveedores>> PostProveedores(Proveedores proveedor)
         {
             _context.Proveedores.Add(proveedor);
@@ -83,6 +88,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> DeleteProveedores(int id)
         {
             var proveedor = await _context.Proveedores.FindAsync(id);

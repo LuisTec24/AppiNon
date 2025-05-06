@@ -3,7 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AppiNon.Services
 {
@@ -11,8 +14,6 @@ namespace AppiNon.Services
     {
         private readonly ILogger<ReabastecimientoWorker> _logger;
         private readonly IServiceProvider _services;
-        private readonly TimeSpan _intervalo = TimeSpan.FromHours(24); // Ejecutar diariamente
-        private readonly TimeSpan _horaEjecucion = new TimeSpan(2, 0, 0); // 2:00 AM
 
         public ReabastecimientoWorker(
             ILogger<ReabastecimientoWorker> logger,
@@ -24,126 +25,70 @@ namespace AppiNon.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Servicio de Reabastecimiento Automático iniciado.");
+            _logger.LogInformation("Worker de Reabastecimiento iniciado. Verificando inventarios...");
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    var ahora = DateTime.Now;
-                    var siguienteEjecucion = ahora.Date.Add(_horaEjecucion);
-
-                    // Si ya pasó la hora de hoy, programar para mañana
-                    if (ahora > siguienteEjecucion)
-                    {
-                        siguienteEjecucion = siguienteEjecucion.AddDays(1);
-                    }
-
-                    var tiempoEspera = siguienteEjecucion - ahora;
-
-                    _logger.LogInformation($"Próxima ejecución programada para: {siguienteEjecucion}");
-
-                    await Task.Delay(tiempoEspera, stoppingToken);
-
                     using (var scope = _services.CreateScope())
                     {
-                        var context = scope.ServiceProvider.GetRequiredService<PinonBdContext>();
+                        var db = scope.ServiceProvider.GetRequiredService<PinonBdContext>();
 
-                        // Obtener todos los productos con inventario
-                        var productosConInventario = await context.Producto
-                            .Join(context.Inv,
+                        // 1. Obtener productos con stock bajo
+                        var productosBajoStock = await db.Producto
+                            .Join(db.Inv,
                                 p => p.id_producto,
-                                i => i.IdProducto,
+                                i=> i.IdProducto, 
                                 (p, i) => new { Producto = p, Inventario = i })
+                            .Where(x => x.Inventario.StockActual < x.Inventario.StockMinimo)
                             .ToListAsync();
 
-                        _logger.LogInformation($"Verificando {productosConInventario.Count} productos...");
+                        _logger.LogInformation($"Productos con stock bajo: {productosBajoStock.Count}");
 
-                        int pedidosGenerados = 0;
-
-                        foreach (var item in productosConInventario)
+                        // 2. Procesar cada producto
+                        foreach (var item in productosBajoStock)
                         {
-                            try
+                            var proveedor = await db.Proveedores
+                                .FirstOrDefaultAsync(p => p.ID_proveedor == item.Producto.ID_Provedor);
+
+                            if (proveedor == null)
                             {
-                                // Obtener proveedor
-                                var proveedor = await context.Proveedores
-                                    .FirstOrDefaultAsync(p => p.ID_proveedor == item.Producto.ID_Provedor);
-
-                                if (proveedor == null)
-                                {
-                                    _logger.LogWarning($"No se encontró proveedor para producto ID {item.Producto.id_producto}");
-                                    continue;
-                                }
-
-                                // Calcular demanda promedio
-                                var demanda = await context.ConsumosMensuales
-                                    .Where(c => c.id_producto == item.Producto.id_producto)
-                                    .OrderByDescending(c => c.Mes)
-                                    .Take(3)
-                                    .AverageAsync(c => c.Cantidad);
-
-                                var consumoDiario = demanda / 30;
-                                var diasHastaAgotarse = (int)(item.Inventario.StockActual / consumoDiario);
-
-                                // Verificar si necesita reabastecimiento
-                                if (item.Inventario.StockActual < item.Inventario.StockMinimo ||
-                                    diasHastaAgotarse < proveedor.Tiempo_entrega_dias)
-                                {
-                                    int cantidad = Math.Max(0, item.Inventario.StockIdeal - item.Inventario.StockActual);
-
-                                    if (cantidad > 0)
-                                    {
-                                        // Crear pedido
-                                        var pedido = new PedidoReabastecimiento
-                                        {
-                                            IdProducto = item.Producto.id_producto,
-                                            Cantidad = cantidad,
-                                            FechaSolicitud = DateTime.Now,
-                                            Estado = "Pendiente"
-                                        };
-
-                                        context.PedidosReabastecimiento.Add(pedido);
-                                        pedidosGenerados++;
-
-                                        // Autoajustar niveles si hay suficiente historial
-                                        var historialCount = await context.ConsumosMensuales
-                                            .CountAsync(c => c.id_producto == item.Producto.id_producto);
-
-                                        if (historialCount >= 3)
-                                        {
-                                            item.Inventario.StockMinimo = (int)(demanda * proveedor.Tiempo_entrega_dias / 30 * 1.2);
-                                            item.Inventario.StockIdeal = (int)(item.Inventario.StockMinimo * 1.5);
-                                        }
-                                    }
-                                }
+                                _logger.LogWarning($"Proveedor no encontrado para producto ID: {item.Producto.id_producto}");
+                                continue;
                             }
-                            catch (Exception ex)
+
+                            // 3. Calcular cantidad a pedir
+                            int cantidad = item.Inventario.StockIdeal - item.Inventario.StockActual;
+                            if (cantidad <= 0) continue;
+
+                            // 4. Crear pedido (si no existe uno pendiente)
+                            bool pedidoExistente = await db.Pedidos
+                                .AnyAsync(p => p.IdProducto == item.Producto.id_producto && p.Estado == "Pendiente");
+
+                            if (!pedidoExistente)
                             {
-                                _logger.LogError(ex, $"Error procesando producto ID {item.Producto.id_producto}");
-                            }
-                        }
+                                db.Pedidos.Add(new Pedido
+                                {
+                                    IdProducto = item.Producto.id_producto,
+                                    Cantidad = cantidad,
+                                    Estado = "Pendiente",
+                                    IdProveedor = item.Producto.ID_Provedor
+                                });
 
-                        if (pedidosGenerados > 0)
-                        {
-                            await context.SaveChangesAsync();
-                            _logger.LogInformation($"Se generaron {pedidosGenerados} pedidos de reabastecimiento.");
-                        }
-                        else
-                        {
-                            _logger.LogInformation("No se requirieron pedidos de reabastecimiento.");
+                                await db.SaveChangesAsync();
+                                _logger.LogInformation($"Pedido generado para {item.Producto.nombre_producto}");
+                            }
                         }
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogInformation("Servicio de Reabastecimiento Automático detenido.");
-                    break;
+
+                    // Esperar 24 horas
+                    await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error en el Servicio de Reabastecimiento Automático");
-                    // Esperar antes de reintentar
-                    await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                    _logger.LogError(ex, "Error en el worker. Reintentando en 30 minutos...");
+                    await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
                 }
             }
         }
