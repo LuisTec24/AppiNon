@@ -25,7 +25,7 @@ namespace AppiNon.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Worker de Reabastecimiento iniciado. Verificando inventarios...");
+            _logger.LogInformation("Worker de Reabastecimiento iniciado.");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -35,18 +35,24 @@ namespace AppiNon.Services
                     {
                         var db = scope.ServiceProvider.GetRequiredService<PinonBdContext>();
 
-                        // 1. Obtener productos con stock bajo
+                        // Solo productos con reabastecimiento automático
                         var productosBajoStock = await db.Producto
+                            .Where(p => p.ReabastecimientoAutomatico) // Solo los automáticos
                             .Join(db.Inv,
                                 p => p.id_producto,
-                                i=> i.IdProducto, 
+                                i => i.IdProducto,
                                 (p, i) => new { Producto = p, Inventario = i })
                             .Where(x => x.Inventario.StockActual < x.Inventario.StockMinimo)
+                            .GroupJoin(db.Pedidos.Where(p => p.Estado == "Pendiente" || p.Estado == "Enviado"),
+                                x => x.Producto.id_producto,
+                                p => p.IdProducto,
+                                (x, pedidos) => new { x.Producto, x.Inventario, Pedidos = pedidos })
+                            .Where(x => !x.Pedidos.Any())
+                            .Select(x => new { x.Producto, x.Inventario })
                             .ToListAsync();
 
-                        _logger.LogInformation($"Productos con stock bajo: {productosBajoStock.Count}");
+                        _logger.LogInformation($"Productos con reabastecimiento automático necesitados: {productosBajoStock.Count}");
 
-                        // 2. Procesar cada producto
                         foreach (var item in productosBajoStock)
                         {
                             var proveedor = await db.Proveedores
@@ -58,39 +64,51 @@ namespace AppiNon.Services
                                 continue;
                             }
 
-                            // 3. Calcular cantidad a pedir
-                            int cantidad = item.Inventario.StockIdeal - item.Inventario.StockActual;
-                            if (cantidad <= 0) continue;
+                            int cantidad = Math.Max(1, item.Inventario.StockIdeal - item.Inventario.StockActual);
 
-                            // 4. Crear pedido (si no existe uno pendiente)
-                            bool pedidoExistente = await db.Pedidos
-                                .AnyAsync(p => p.IdProducto == item.Producto.id_producto && p.Estado == "Pendiente");
-
-                            if (!pedidoExistente)
+                            var nuevoPedido = new Pedido
                             {
-                                db.Pedidos.Add(new Pedido
-                                {
-                                    IdProducto = item.Producto.id_producto,
-                                    Cantidad = cantidad,
-                                    Estado = "Pendiente",
-                                    IdProveedor = item.Producto.ID_Provedor
-                                });
+                                IdProducto = item.Producto.id_producto,
+                                Cantidad = cantidad,
+                                Estado = "Pendiente",
+                                IdProveedor = item.Producto.ID_Provedor,
+                                FechaSolicitud = DateTime.Now,
+                                EsAutomatico = true // Marcar como pedido automático
+                            };
 
-                                await db.SaveChangesAsync();
-                                _logger.LogInformation($"Pedido generado para {item.Producto.nombre_producto}");
-                            }
+                            db.Pedidos.Add(nuevoPedido);
+                            await db.SaveChangesAsync();
+
+                            _logger.LogInformation($"Pedido automático {nuevoPedido.IdPedido} generado para {item.Producto.nombre_producto}");
                         }
                     }
 
-                    // Esperar 24 horas
                     await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error en el worker. Reintentando en 30 minutos...");
+                    _logger.LogError(ex, "Error en el worker de reabastecimiento");
                     await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
                 }
             }
         }
+
+        private async Task RegistrarBitacora(PinonBdContext db, string tipo, string entidad, int idEntidad, string descripcion)
+        {
+            // Aquí deberías obtener el ID del usuario del sistema (no hardcodeado)
+            var bitacora = new Bitacora
+            {
+                Fecha = DateTime.Now,
+                Tipo_de_Modificacion = tipo,
+                ID_Usuario = 1, // Reemplazar con usuario real
+                Entidad = entidad,
+                ID_Entidad = idEntidad,
+                Descripcion = descripcion
+            };
+
+            db.Bitacora.Add(bitacora);
+            await db.SaveChangesAsync();
+        }
+
     }
 }

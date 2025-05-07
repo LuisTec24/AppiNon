@@ -21,7 +21,6 @@ public partial class PinonBdContext : DbContext
     public virtual DbSet<Pedido> Pedidos { get; set; }
     public virtual DbSet<Bitacora> Bitacora { get; set; }
     
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=LUIS; DataBase=PinonBD;Integrated Security=true; TrustServerCertificate=True");
@@ -50,23 +49,23 @@ public partial class PinonBdContext : DbContext
         modelBuilder.Entity<Producto>(entity =>
         {
             entity.HasKey(e => e.id_producto);
-
             entity.Property(e => e.nombre_producto).HasMaxLength(255);
             entity.Property(e => e.unidad_medida).HasMaxLength(255);
-            entity.Property(e => e.id_categoria).HasColumnType("int"); // Cambiado a int
+            entity.Property(e => e.id_categoria).HasColumnType("int");
+            entity.Property(e => e.ReabastecimientoAutomatico)
+                  .HasDefaultValue(true); // Valor por defecto
 
-            // Relación con Categorías
             entity.HasOne<Categorias>()
-                .WithMany()
-                .HasForeignKey(e => e.id_categoria);
+                  .WithMany()
+                  .HasForeignKey(e => e.id_categoria);
 
-            // Relación con Proveedores (FALTABA)
             entity.HasOne<Proveedores>()
-                .WithMany()
-                .HasForeignKey(e => e.ID_Provedor)
-                .HasConstraintName("FK_Producto_Provedores");
+                  .WithMany()
+                  .HasForeignKey(e => e.ID_Provedor)
+                  .HasConstraintName("FK_Producto_Provedores");
         });
-       
+
+
         // Configuración de Pedidos
         modelBuilder.Entity<Pedido>(entity =>
         {

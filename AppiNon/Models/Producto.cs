@@ -7,16 +7,16 @@ namespace AppiNon.Models
     [Route("api/[controller]")]
     [ApiController]
 
-    public class Producto 
+    public class Producto
     {
-        public int id_producto { get; set; } 
-        public string nombre_producto { get; set; }= null!;
+        public int id_producto { get; set; }
+        public string nombre_producto { get; set; } = null!;
         public int id_categoria { get; set; }
         public string unidad_medida { get; set; } = null!;
         public int ID_Provedor { get; set; }
-      //  public ICollection<Producto> Categoria { get; set; }
+        public bool ReabastecimientoAutomatico { get; set; } = true; // Nuevo campo
+                                                                     //  public ICollection<Producto> Categoria { get; set; }
     }
-
 
     public class Categorias
     {
@@ -74,18 +74,18 @@ namespace AppiNon.Models
         public int IdProducto { get; set; }
         public int Cantidad { get; set; }
         public DateTime FechaSolicitud { get; set; } = DateTime.Now;
-        public DateTime? FechaRecepcion { get; set; } // Nullable hasta que se reciba
-        public string Estado { get; set; } = "Pendiente"; // "Pendiente", "Enviado", "Recibido", "Cancelado"
+        public DateTime? FechaRecepcion { get; set; }
+        public string Estado { get; set; } = "Pendiente";
         public int IdProveedor { get; set; }
+        public bool EsAutomatico { get; set; } // Nuevo campo
+        public string? SolicitadoPor { get; set; } // Usuario que lo solicitó (para manuales)
 
-        // Relaciones (opcional, para navegación)
         [ForeignKey("IdProducto")]
         public virtual Producto Producto { get; set; } = null!;
 
         [ForeignKey("IdProveedor")]
         public virtual Proveedores Proveedor { get; set; } = null!;
     }
-
 
 
 
