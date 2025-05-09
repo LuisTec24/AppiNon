@@ -36,7 +36,7 @@ builder.Services.AddDbContext<PinonBdContext>(options =>
 });
 
 builder.Configuration.AddJsonFile("appsettings.json");
-var secretKey = builder.Configuration.GetSection("settings").GetSection("secretKey").ToString();// "=Codig0Estudiant3=";
+var secretKey = builder.Configuration["settings:secretKey"];
 var keyBytes = Encoding.UTF8.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(config => {

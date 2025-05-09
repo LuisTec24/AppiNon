@@ -15,7 +15,7 @@ namespace AppiNon.Models
         public string unidad_medida { get; set; } = null!;
         public int ID_Provedor { get; set; }
         public bool ReabastecimientoAutomatico { get; set; } = true; // Nuevo campo
-                                                                     //  public ICollection<Producto> Categoria { get; set; }
+                                                     //  public ICollection<Producto> Categoria { get; set; }
     }
 
     public class Categorias

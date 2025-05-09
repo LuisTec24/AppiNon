@@ -80,6 +80,7 @@ namespace AppiNon.Controllers
 
         [HttpPut("{correo}")]
         [Authorize(Roles = "1")]
+
         public async Task<IActionResult> PutUsuarioPorCorreo(string correo, Usuarios usuarioActualizado)
         {
             var usuarioExistente = await _context.Usuarios.FirstOrDefaultAsync(u => u.Correo == correo);
