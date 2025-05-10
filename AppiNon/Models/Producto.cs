@@ -77,7 +77,6 @@ namespace AppiNon.Models
         public DateTime? FechaRecepcion { get; set; }
         public string Estado { get; set; } = "Pendiente";
         public int IdProveedor { get; set; }
-        public bool EsAutomatico { get; set; } // Nuevo campo
         public string? SolicitadoPor { get; set; } // Usuario que lo solicitó (para manuales)
 
         [ForeignKey("IdProducto")]

@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using AppiNon.Models;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations.Schema;
+using NuGet.Protocol;
+using static AppiNon.Controllers.InventarioController;
 
 namespace AppiNon.Controllers
 {
@@ -261,29 +264,30 @@ namespace AppiNon.Controllers
 
         [HttpPost("CrearPedido")]
         [Authorize(Policy = "Admin")]
-        public async Task<IActionResult> CrearPedido([FromBody] PedidoDto pedidoDto)
+        public async Task<IActionResult> CrearPedido(PedidoDto pedidos)
         {
             try
             {
-                // Validar producto y proveedor
-                var producto = await _context.Producto.FindAsync(pedidoDto.IdProducto);
-                if (producto == null) return NotFound("Producto no encontrado");
-
-                var proveedor = await _context.Proveedores.FindAsync(pedidoDto.IdProveedor);
-                if (proveedor == null) return NotFound("Proveedor no encontrado");
-
+                var productoExiste = await _context.Producto.FindAsync(pedidos.IdProducto);
+                if (productoExiste == null)
+                {
+                    return BadRequest("Producto o proveedor no válido.");
+                }
                 // Crear pedido
                 var pedido = new Pedido
                 {
-                    IdProducto = pedidoDto.IdProducto,
-                    Cantidad = pedidoDto.Cantidad,
+                    IdPedido=0,
+                    IdProducto = pedidos.IdProducto,
+                    Cantidad = pedidos.Cantidad,
                     Estado = "Pendiente",
-                    IdProveedor = pedidoDto.IdProveedor
-                };
+                    IdProveedor = pedidos.IdProveedor,
+                    FechaSolicitud= DateTime.Now,
+                    FechaRecepcion=null,
+                    SolicitadoPor=pedidos.SolicitadoPor
+    };
 
                 _context.Pedidos.Add(pedido);
                 await _context.SaveChangesAsync();
-
                 return Ok(pedido);
             }
             catch (Exception ex)
@@ -296,9 +300,13 @@ namespace AppiNon.Controllers
         // DTO para recibir datos
         public class PedidoDto
         {
+           public int IdPedido { get; set; }
+            public string SolicitadoPor { get; set; }
+        
             public int IdProducto { get; set; }
             public int Cantidad { get; set; }
             public int IdProveedor { get; set; }
+
         }
         /////////////////////////////////////////////////Actualizar Pedido
         ///
@@ -344,13 +352,6 @@ namespace AppiNon.Controllers
 
 
 
-
-
-    
-
-
-
-
         ////--------------------Consultar Pedidos
         ///
 
@@ -359,7 +360,7 @@ namespace AppiNon.Controllers
         public async Task<IActionResult> GetPedidosPendientes()
         {
             var pedidos = await _context.Pedidos
-                .Where(p => p.Estado == "Pendiente")
+                
                 .Include(p => p.Producto)
                 .Include(p => p.Proveedor)
                 .ToListAsync();

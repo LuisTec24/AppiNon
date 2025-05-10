@@ -73,7 +73,7 @@ namespace AppiNon.Services
                                 Estado = "Pendiente",
                                 IdProveedor = item.Producto.ID_Provedor,
                                 FechaSolicitud = DateTime.Now,
-                                EsAutomatico = true // Marcar como pedido automático
+                                SolicitadoPor="Servidor"
                             };
 
                             db.Pedidos.Add(nuevoPedido);
