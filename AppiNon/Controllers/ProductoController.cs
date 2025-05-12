@@ -24,16 +24,15 @@ namespace AppiNon.Controllers
         }
 
         [HttpGet]
-        [Authorize(Policy = "Admin")]
-        [Authorize(Policy = "User")]
+        [Authorize(Roles = "1,2")]
         public async Task<ActionResult<IEnumerable<Producto>>> GetProducto()
         {
             return await _context.Producto.ToListAsync();
         }
 
         [HttpGet("{id_categoria:int}/{id_producto:int}")]
-        [Authorize(Policy = "Admin")]
-        [Authorize(Policy = "User")]
+        [Authorize(Roles = "1,2")]
+        
         public async Task<ActionResult<Producto>> GetProducto(int id_categoria, int id_producto)
         {
             var producto = await _context.Producto.FindAsync(id_categoria, id_producto);
@@ -46,7 +45,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpPut("{id_producto:int}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<IActionResult> PutProducto(int id_producto, Producto producto)
         {
             if (id_producto != producto.id_producto)
@@ -77,7 +76,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<ActionResult<Producto>> PostProducto(Producto producto)
         {
             _context.Producto.Add(producto);
@@ -92,7 +91,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpDelete("{id_categoria:int}/{id_producto:int}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<IActionResult> DeleteProducto(int id_categoria, int id_producto)
         {
             var producto = await _context.Producto.FindAsync(id_categoria, id_producto);

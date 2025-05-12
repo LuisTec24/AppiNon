@@ -24,16 +24,15 @@ namespace AppiNon.Controllers
         }
 
         [HttpGet]
-        [Authorize(Policy = "Admin")]
-        [Authorize(Policy = "User")]
+        [Authorize(Roles = "1,2")]
         public async Task<ActionResult<IEnumerable<Categorias>>> GetCategorias()
         {
             return await _context.Categorias.ToListAsync();
         }
 
         [HttpGet("{id:int}")]
-        [Authorize(Policy = "Admin")]
-        [Authorize(Policy = "User")]
+        [Authorize(Roles = "1,2")]
+
         public async Task<ActionResult<Categorias>> GetCategoria(int id)
         {
             var categoria = await _context.Categorias.FindAsync(id);
@@ -47,7 +46,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpPut("{id:int}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<IActionResult> PutCategoria(int id, Categorias categoria)
         {
             if (id != categoria.id_categoria)
@@ -78,7 +77,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<ActionResult<Categorias>> PostCategoria(Categorias categoria)
         {
             _context.Categorias.Add(categoria);
@@ -89,7 +88,7 @@ namespace AppiNon.Controllers
         }
 
         [HttpDelete("{id:int}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<IActionResult> DeleteCategoria(int id)
         {
             var categoria = await _context.Categorias.FindAsync(id);

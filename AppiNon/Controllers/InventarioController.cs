@@ -33,7 +33,7 @@ namespace AppiNon.Controllers
 
         // GET: api/Inventario
         [HttpGet] 
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<ActionResult<IEnumerable<Inventario>>> GetInventario()
         {
             try
@@ -49,7 +49,7 @@ namespace AppiNon.Controllers
 
         // GET: api/Inventario/5
         [HttpGet("{id:int}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
 
         public async Task<ActionResult<Inventario>> GetInventarioById(int id)
         {
@@ -73,7 +73,7 @@ namespace AppiNon.Controllers
 
         // GET: api/Inventario/Producto/5
         [HttpGet("Producto/{productoId:int}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
 
         public async Task<ActionResult<Inventario>> GetInventarioByProductoId(int productoId)
         {
@@ -98,7 +98,7 @@ namespace AppiNon.Controllers
 
         // POST: api/Inventario
         [HttpPost]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<ActionResult<Inventario>> CreateInventario([FromBody] Inventario inventario)
         {
             try
@@ -135,7 +135,7 @@ namespace AppiNon.Controllers
 
         // PUT: api/Inventario/5
         [HttpPut("{id:int}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         
         public async Task<IActionResult> UpdateInventario(int id, [FromBody] Inventario inventario)
         {
@@ -192,7 +192,7 @@ namespace AppiNon.Controllers
 
         // DELETE: api/Inventario/5
         [HttpDelete("{id:int}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<IActionResult> DeleteInventario(int id)
         {
             try
@@ -263,7 +263,7 @@ namespace AppiNon.Controllers
         ///
 
         [HttpPost("CrearPedido")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<IActionResult> CrearPedido(PedidoDto pedidos)
         {
             try
@@ -312,7 +312,7 @@ namespace AppiNon.Controllers
         ///
 
         [HttpPut("ActualizarEstadoPedido/{idPedido}")]
-        [Authorize(Policy = "Admin")]
+        [Authorize(Roles = "1")]
         public async Task<IActionResult> ActualizarEstadoPedido(int idPedido, [FromBody] string nuevoEstado)
         {
             try

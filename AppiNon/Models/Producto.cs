@@ -15,7 +15,11 @@ namespace AppiNon.Models
         public string unidad_medida { get; set; } = null!;
         public int ID_Provedor { get; set; }
         public bool ReabastecimientoAutomatico { get; set; } = true; // Nuevo campo
-                                                     //  public ICollection<Producto> Categoria { get; set; }
+       
+
+        public virtual Inventario Inventario { get; set; }
+        public string? MetodoPrediccion { get; set; } = null!;
+        //  public ICollection<Producto> Categoria { get; set; }
     }
 
     public class Categorias
@@ -37,8 +41,11 @@ namespace AppiNon.Models
         public int StockMinimo { get; set; }
         public int StockIdeal { get; set; }
         public DateTime UltimaEntrada { get; set; }
-    }
 
+        public virtual Producto Producto { get; set; } // navegación inversa
+                                                       //
+                                                       //
+    }
 
 
     public class Roles

@@ -4,90 +4,75 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using AppiNon.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-var reglascors = "ReglasCors";
+// 1. Configuración de CORS
+var corsPolicy = "PolicyCORS";
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: reglascors, builder =>
-    {
-        builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-
-    });
+    options.AddPolicy(name: corsPolicy,
+        policy => policy.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader());
 });
 
+// 2. Configuración base
 builder.Services.AddControllers();
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-
-builder.Services.AddHostedService<ReabastecimientoWorker>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddControllers();
-
+// 3. Configuración de la base de datos (corregido "AppCon")
 builder.Services.AddDbContext<PinonBdContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("AppCon")));
 
-});
+// 4. Configuración de autenticación JWT (corregido "secretkey" minúscula)
+var jwtSettings = builder.Configuration.GetSection("settings");
+var secretKey = jwtSettings["secretkey"] ?? throw new InvalidOperationException("Secret key no configurada");
 
-builder.Configuration.AddJsonFile("appsettings.json");
-var secretKey = builder.Configuration["settings:secretKey"];
-var keyBytes = Encoding.UTF8.GetBytes(secretKey);
-
-builder.Services.AddAuthentication(config => {
-
-    config.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    config.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(config => {
-    config.RequireHttpsMetadata = false;
-    config.SaveToken = false;
-    config.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-        ValidateIssuer = false,
-        ValidateAudience = false
-    };
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
 
-///Creo Roles''
+// 5. Configuración de autorización por roles
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole("1"));
     options.AddPolicy("User", policy => policy.RequireRole("2"));
-    // Agrega más políticas según necesites
 });
 
-
-
-
-
+// 6. Servicios en segundo plano
+builder.Services.AddHostedService<StockPredictionService>();
+builder.Services.AddHostedService<ReabastecimientoWorker>();
 
 var app = builder.Build();
 
-app.UseCors(reglascors);
+// Configuración del pipeline HTTP
 
-app.UseAuthentication();
+// A. CORS
+app.UseCors(corsPolicy);
 
-// Configure the HTTP request pipeline.
+// B. Swagger solo en desarrollo
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseCors(options => options.WithOrigins("http://localhost:7052").AllowAnyMethod().AllowAnyHeader());
-
-
+// C. Middlewares esenciales (ORDEN IMPORTANTE)
 app.UseHttpsRedirection();
+app.UseAuthentication();  // Primero autenticación
+app.UseAuthorization();   // Luego autorización
 
-app.UseAuthorization();
-
+// D. Mapeo de controladores
 app.MapControllers();
 
 app.Run();
