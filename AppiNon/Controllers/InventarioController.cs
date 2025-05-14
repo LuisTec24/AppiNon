@@ -104,7 +104,7 @@ namespace AppiNon.Controllers
             try
             {
                 // Validar que el producto exista
-                var productoExists = await _context.Producto.AnyAsync(p => p.id_producto == inventario.IdProducto);
+                var productoExists = await _context.Producto.AnyAsync(p => p.Id_producto == inventario.IdProducto);
                 if (!productoExists)
                 {
                     return BadRequest(new { message = $"El producto con ID {inventario.IdProducto} no existe" });

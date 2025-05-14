@@ -50,7 +50,7 @@ namespace AppiNon.Services
         private async Task ProcesarPredicciones(PinonBdContext db)
         {
             var productos = await db.Producto
-                .Where(p => p.ReabastecimientoAutomatico)
+                .Where(p => p.Reabastecimientoautomatico)
                 .ToListAsync();
 
             foreach (var producto in productos)
@@ -59,14 +59,14 @@ namespace AppiNon.Services
                 {
                     var (minimo, ideal, metodo) = await CalcularNivelesStock(producto, db);
 
-                    var inventario = await db.Inv.FirstAsync(i => i.IdProducto == producto.id_producto);
+                    var inventario = await db.Inv.FirstAsync(i => i.IdProducto == producto.Id_producto);
                     inventario.StockMinimo = minimo;
                     inventario.StockIdeal = ideal;
 
                     // Registrar la predicción
                     db.Predicciones.Add(new Predicciones
                     {
-                        id_producto = producto.id_producto,
+                        id_producto = producto.Id_producto,
                         Mes = DateTime.Now.Month,
                         Ano = DateTime.Now.Year,
                         ConsumoPredicho = (minimo / GetFactor("FACTOR_STOCK_MINIMO", db)),
@@ -77,40 +77,40 @@ namespace AppiNon.Services
 
                     await db.SaveChangesAsync();
 
-                    _logger.LogInformation($"Predicción actualizada para {producto.nombre_producto} " +
+                    _logger.LogInformation($"Predicción actualizada para {producto.Nombre_producto} " +
                                             $"(Método: {metodo}) - Mínimo: {minimo}, Ideal: {ideal}");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error procesando producto {producto.id_producto}");
+                    _logger.LogError(ex, $"Error procesando producto {producto.Id_producto}");
                 }
             }
         }
 
         private async Task<(int minimo, int ideal, string metodo)> CalcularNivelesStock(Producto producto, PinonBdContext db)
         {
-            var metodo = producto.MetodoPrediccion ?? "Automatico";
+            var metodo = producto.Metodoprediccion ?? "Automatico";
 
             if (metodo == "Automatico")
             {
                 var historialCount = await db.Pedidos
-                    .Where(p => p.IdProducto == producto.id_producto)
+                    .Where(p => p.IdProducto == producto.Id_producto)
                     .CountAsync();
 
                 metodo = historialCount < 12 ? "General" :
-                        await TieneEstacionalidad(producto.id_producto, db) ? "Mensual" : "General";
+                        await TieneEstacionalidad(producto.Id_producto, db) ? "Mensual" : "General";
             }
             double consumo;
 
             if (metodo == "General")
             {
                 var pedidos = db.Pedidos
-                    .Where(p => p.IdProducto == producto.id_producto && p.Estado == "Entregado");
+                    .Where(p => p.IdProducto == producto.Id_producto && p.Estado == "Entregado");
 
                 // Omitir el producto si no hay pedidos entregados
                 if (!await pedidos.AnyAsync())
                 {
-                    _logger.LogInformation($"Producto {producto.id_producto} omitido: sin pedidos entregados (nuevo producto).");
+                    _logger.LogInformation($"Producto {producto.Id_producto} omitido: sin pedidos entregados (nuevo producto).");
                     return (0, 0, metodo); // No predicción, omitir producto
                 }
 
@@ -121,7 +121,7 @@ namespace AppiNon.Services
                 var mesActual = DateTime.Now.Month;
 
                 var pedidosMes = db.Pedidos
-                    .Where(p => p.IdProducto == producto.id_producto &&
+                    .Where(p => p.IdProducto == producto.Id_producto &&
                                 p.Estado == "Entregado" &&
                                 p.FechaRecepcion.HasValue &&
                                 p.FechaRecepcion.Value.Month == mesActual);
@@ -129,7 +129,7 @@ namespace AppiNon.Services
                 // Omitir el producto si no hay pedidos entregados este mes
                 if (!await pedidosMes.AnyAsync())
                 {
-                    _logger.LogInformation($"Producto {producto.id_producto} omitido: sin pedidos entregados este mes.");
+                    _logger.LogInformation($"Producto {producto.Id_producto} omitido: sin pedidos entregados este mes.");
                     return (0, 0, metodo); // No predicción, omitir producto
                 }
 

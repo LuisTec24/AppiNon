@@ -51,24 +51,24 @@ public partial class PinonBdContext : DbContext
 
         modelBuilder.Entity<Producto>(entity =>
         {
-            entity.HasKey(e => e.id_producto);
-            entity.Property(e => e.nombre_producto).HasMaxLength(255);
-            entity.Property(e => e.unidad_medida).HasMaxLength(255);
-            entity.Property(e => e.id_categoria).HasColumnType("int");
-            entity.Property(e => e.MetodoPrediccion).HasMaxLength(255);
+            entity.HasKey(e => e.Id_producto);
+            entity.Property(e => e.Nombre_producto).HasMaxLength(255);
+            entity.Property(e => e.Unidad_medida).HasMaxLength(255);
+            entity.Property(e => e.Id_categoria).HasColumnType("int");
+            entity.Property(e => e.Metodoprediccion).HasMaxLength(255);
 
-            entity.Property(e => e.ReabastecimientoAutomatico)
+            entity.Property(e => e.Reabastecimientoautomatico)
                   .HasDefaultValue(true); // Valor por defecto
 
             entity.HasOne<Categorias>()
                   .WithMany()
-                  .HasForeignKey(e => e.id_categoria);
+                  .HasForeignKey(e => e.Id_categoria);
 
 
 
             entity.HasOne<Proveedores>()
                   .WithMany()
-                  .HasForeignKey(e => e.ID_Provedor)
+                  .HasForeignKey(e => e.Id_provedor)
                   .HasConstraintName("FK_Producto_Provedores");
         });
 

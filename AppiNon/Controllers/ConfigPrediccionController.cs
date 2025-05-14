@@ -28,13 +28,13 @@ public class ConfigPrediccionController : ControllerBase
         var producto = await _db.Producto.FindAsync(idProducto);
         if (producto == null) return NotFound();
 
-        producto.MetodoPrediccion = request.Metodo;
+        producto.Metodoprediccion = request.Metodo;
         await _db.SaveChangesAsync();
 
         return Ok(new
         {
             IdProducto = idProducto,
-            MetodoPrediccion = producto.MetodoPrediccion,
+            MetodoPrediccion = producto.Metodoprediccion,
             Mensaje = $"Configuración actualizada a: {request.Metodo}"
         });
     }
@@ -52,7 +52,7 @@ public class ConfigPrediccionController : ControllerBase
         {
             var producto = await _db.Producto
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.id_producto == idProducto);
+                .FirstOrDefaultAsync(p => p.Id_producto == idProducto);
 
             if (producto == null)
                 return NotFound($"Producto con ID {idProducto} no encontrado");
@@ -93,9 +93,9 @@ public class ConfigPrediccionController : ControllerBase
 
             return Ok(new
             {
-                IdProducto = producto.id_producto,
-                NombreProducto = producto.nombre_producto,
-                MetodoActual = producto.MetodoPrediccion,
+                IdProducto = producto.Id_producto,
+                NombreProducto = producto.Nombre_producto,
+                MetodoActual = producto.Metodoprediccion,
                 Historial = new
                 {
                     MesesConDatos = mesesConDatos,

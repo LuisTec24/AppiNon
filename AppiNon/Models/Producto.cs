@@ -9,16 +9,16 @@ namespace AppiNon.Models
 
     public class Producto
     {
-        public int id_producto { get; set; }
-        public string nombre_producto { get; set; } = null!;
-        public int id_categoria { get; set; }
-        public string unidad_medida { get; set; } = null!;
-        public int ID_Provedor { get; set; }
-        public bool ReabastecimientoAutomatico { get; set; } = true; // Nuevo campo
+        public int Id_producto { get; set; }
+        public string Nombre_producto { get; set; } = null!;
+        public int Id_categoria { get; set; }
+        public string Unidad_medida { get; set; } = null!;
+        public int Id_provedor { get; set; }
+        public bool Reabastecimientoautomatico { get; set; } = true; // Nuevo campo
        
 
         public virtual Inventario Inventario { get; set; }
-        public string? MetodoPrediccion { get; set; } = null!;
+        public string? Metodoprediccion { get; set; } = null!;
         //  public ICollection<Producto> Categoria { get; set; }
     }
 

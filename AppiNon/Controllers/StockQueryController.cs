@@ -57,7 +57,7 @@ namespace AppiNon.Controllers
         {
             var producto = await _db.Producto
                 .Include(p => p.Inventario)
-                .FirstOrDefaultAsync(p => p.id_producto == idProducto);
+                .FirstOrDefaultAsync(p => p.Id_producto == idProducto);
 
             if (producto == null) return NotFound();
 
@@ -81,9 +81,9 @@ namespace AppiNon.Controllers
             {
                 Producto = new
                 {
-                    producto.id_producto,
-                    producto.nombre_producto,
-                    producto.MetodoPrediccion
+                    producto.Id_producto,
+                    producto.Nombre_producto,
+                    producto.Metodoprediccion
                 },
                 Inventario = new
                 {

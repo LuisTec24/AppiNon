@@ -37,14 +37,14 @@ namespace AppiNon.Services
 
                         // Solo productos con reabastecimiento automático
                         var productosBajoStock = await db.Producto
-                            .Where(p => p.ReabastecimientoAutomatico) // Solo los automáticos
+                            .Where(p => p.Reabastecimientoautomatico) // Solo los automáticos
                             .Join(db.Inv,
-                                p => p.id_producto,
+                                p => p.Id_producto,
                                 i => i.IdProducto,
                                 (p, i) => new { Producto = p, Inventario = i })
                             .Where(x => x.Inventario.StockActual < x.Inventario.StockMinimo)
                             .GroupJoin(db.Pedidos.Where(p => p.Estado == "Pendiente" || p.Estado == "Enviado"),
-                                x => x.Producto.id_producto,
+                                x => x.Producto.Id_producto,
                                 p => p.IdProducto,
                                 (x, pedidos) => new { x.Producto, x.Inventario, Pedidos = pedidos })
                             .Where(x => !x.Pedidos.Any())
@@ -56,11 +56,11 @@ namespace AppiNon.Services
                         foreach (var item in productosBajoStock)
                         {
                             var proveedor = await db.Proveedores
-                                .FirstOrDefaultAsync(p => p.ID_proveedor == item.Producto.ID_Provedor);
-
+                                .FirstOrDefaultAsync(p => p.ID_proveedor == item.Producto.Id_provedor);
+                            
                             if (proveedor == null)
                             {
-                                _logger.LogWarning($"Proveedor no encontrado para producto ID: {item.Producto.id_producto}");
+                                _logger.LogWarning($"Proveedor no encontrado para producto ID: {item.Producto.Id_producto}");
                                 continue;
                             }
 
@@ -68,10 +68,10 @@ namespace AppiNon.Services
 
                             var nuevoPedido = new Pedido
                             {
-                                IdProducto = item.Producto.id_producto,
+                                IdProducto = item.Producto.Id_producto,
                                 Cantidad = cantidad,
                                 Estado = "Pendiente",
-                                IdProveedor = item.Producto.ID_Provedor,
+                                IdProveedor = item.Producto.Id_provedor,
                                 FechaSolicitud = DateTime.Now,
                                 SolicitadoPor="Servidor"
                             };
@@ -79,7 +79,7 @@ namespace AppiNon.Services
                             db.Pedidos.Add(nuevoPedido);
                             await db.SaveChangesAsync();
 
-                            _logger.LogInformation($"Pedido automático {nuevoPedido.IdPedido} generado para {item.Producto.nombre_producto}");
+                            _logger.LogInformation($"Pedido automático {nuevoPedido.IdPedido} generado para {item.Producto.Nombre_producto}");
                         }
                     }
 
