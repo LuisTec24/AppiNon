@@ -80,7 +80,7 @@ namespace AppiNon.Controllers
         }
 
 
-        [HttpPost("/Agregar/")]
+        [HttpPost("Agregar")]
         [Authorize(Roles = "1")]
         public async Task<ActionResult<ProductoCreateDto>> PostProducto(ProductoCreateDto dto)
         {

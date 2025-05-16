@@ -14,7 +14,7 @@ namespace AppiNon.Controllers
     [EnableCors("ReglasCors")]
     [Route("api/[controller]")]
     [ApiController]
-     [Authorize] // Desactivado como solicitaste
+     [Authorize] 
     public class ProveedoresController : ControllerBase
     {
         private readonly PinonBdContext _context;

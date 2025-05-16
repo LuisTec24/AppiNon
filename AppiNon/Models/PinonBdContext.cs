@@ -40,6 +40,7 @@ public partial class PinonBdContext : DbContext
             entity.HasKey(e => e.ID_proveedor);
             entity.Property(e => e.Nombre_Proveedor).HasMaxLength(255);
             entity.Property(e => e.Tiempo_entrega_dias).HasColumnType("int"); // Cambiado a int
+            entity.Property(e => e.Telefono).HasMaxLength(25);
         });
 
         modelBuilder.Entity<Roles>(entity =>

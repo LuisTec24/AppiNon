@@ -8,13 +8,15 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Configuración de CORS
-var corsPolicy = "PolicyCORS";
+var corsPolicy = "ReglasCors";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: corsPolicy,
-        policy => policy.AllowAnyOrigin()
-                       .AllowAnyMethod()
-                       .AllowAnyHeader());
+      policy => policy.WithOrigins("https://localhost:7042") // pon aqui tu frontend
+                     .AllowAnyMethod()
+                     .AllowAnyHeader()
+                     .AllowCredentials());
+
 });
 
 // 2. Configuración base

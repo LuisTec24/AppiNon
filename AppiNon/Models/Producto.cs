@@ -61,6 +61,7 @@ namespace AppiNon.Models
         public int ID_proveedor { get; set; }
         public string Nombre_Proveedor { get; set; } = null!;
         public int Tiempo_entrega_dias { get; set; }
+        public string Telefono { get; set; }
 
     }
 
