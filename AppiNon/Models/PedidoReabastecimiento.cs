@@ -13,6 +13,15 @@ namespace AppiNon.Models
         public string Estado { get; set; } // "Pendiente", "Enviado", "Recibido"
     }
 
+    // DTO para creación de inventario
+    public class CrearInventarioDto
+    {
+        public int IdProducto { get; set; }
+        public int StockActual { get; set; }
+        public int StockMinimo { get; set; }
+        public int StockIdeal { get; set; }
+    }
+
     public class ProductoUpdateDto
     {
         public int Id_producto { get; set; }  // Debe coincidir con el id en ruta

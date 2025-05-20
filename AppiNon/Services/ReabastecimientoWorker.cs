@@ -64,8 +64,10 @@ namespace AppiNon.Services
                                 continue;
                             }
 
-                            int cantidad = Math.Max(1, item.Inventario.StockIdeal - item.Inventario.StockActual);
 
+                            //aqui pediria el stock ideal que deberiamos tener para el siguiente mes , se supone que antes se calculo el stock ideal
+                            int cantidad = Math.Max(1, item.Inventario.StockIdeal - item.Inventario.StockActual);
+                            //esto lo tengo que cambiar por pedido desde controles
                             var nuevoPedido = new Pedido
                             {
                                 IdProducto = item.Producto.Id_producto,

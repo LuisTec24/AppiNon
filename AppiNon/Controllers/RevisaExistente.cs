@@ -35,6 +35,7 @@ namespace AppiNon.Controllers
                 var claims = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, usuario.Correo),
+                      new Claim(ClaimTypes.Name, usuario.Nombre), // ← AQUI agregas el nombre
                     new Claim(ClaimTypes.Role, usuario.Rol_id.ToString())
                 });
 

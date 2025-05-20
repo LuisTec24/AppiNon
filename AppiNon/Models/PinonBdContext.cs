@@ -102,19 +102,34 @@ public partial class PinonBdContext : DbContext
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
+
         modelBuilder.Entity<Inventario>(entity =>
         {
             entity.HasKey(e => e.IdInventario);
-            entity.Property(e => e.IdProducto).HasColumnType("int");
-            entity.Property(e => e.StockActual).HasColumnType("int");
-            entity.Property(e => e.StockMinimo).HasColumnType("int");
-            entity.Property(e => e.StockIdeal).HasColumnType("int");
-            entity.Property(e => e.UltimaEntrada).HasColumnType("datetime");
 
-            
+            entity.Property(e => e.IdProducto)
+                  .HasColumnType("int")
+                  .IsRequired();
+
+            entity.Property(e => e.StockActual)
+                  .HasColumnType("int")
+                  .IsRequired();
+
+            entity.Property(e => e.StockMinimo)
+                  .HasColumnType("int")
+                  .IsRequired();
+
+            entity.Property(e => e.StockIdeal)
+                  .HasColumnType("int")
+                  .IsRequired();
+
+            entity.Property(e => e.UltimaEntrada)
+                  .HasColumnType("datetime");
+
             entity.HasOne(e => e.Producto)
                   .WithOne(p => p.Inventario)
-                  .HasForeignKey<Inventario>(e => e.IdProducto);
+                  .HasForeignKey<Inventario>(e => e.IdProducto)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
 

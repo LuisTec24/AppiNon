@@ -11,6 +11,7 @@ using System.Security.Claims;
 using System.ComponentModel.DataAnnotations.Schema;
 using NuGet.Protocol;
 using static AppiNon.Controllers.InventarioController;
+using System.ComponentModel.DataAnnotations;
 
 namespace AppiNon.Controllers
 {
@@ -32,7 +33,7 @@ namespace AppiNon.Controllers
         }
 
         // GET: api/Inventario
-        [HttpGet] 
+        [HttpGet]
         [Authorize(Roles = "1")]
         public async Task<ActionResult<IEnumerable<Inventario>>> GetInventario()
         {
@@ -97,46 +98,81 @@ namespace AppiNon.Controllers
         }
 
         // POST: api/Inventario
-        [HttpPost]
+        [HttpPost("CrearInv")]
         [Authorize(Roles = "1")]
-        public async Task<ActionResult<Inventario>> CreateInventario([FromBody] Inventario inventario)
+        public async Task<ActionResult<Inventario>> CreateInventario([FromBody] CrearInventarioDto inventarioDto)
         {
             try
             {
                 // Validar que el producto exista
-                var productoExists = await _context.Producto.AnyAsync(p => p.Id_producto == inventario.IdProducto);
-                if (!productoExists)
+                var producto = await _context.Producto
+                    .AsNoTracking() // Importante para evitar problemas de seguimiento
+                    .FirstOrDefaultAsync(p => p.Id_producto == inventarioDto.IdProducto);
+
+                if (producto == null)
                 {
-                    return BadRequest(new { message = $"El producto con ID {inventario.IdProducto} no existe" });
+                    return BadRequest(new { message = $"El producto con ID {inventarioDto.IdProducto} no existe" });
                 }
 
                 // Validar que no exista ya un registro para este producto
-                var inventarioExists = await _context.Inv.AnyAsync(i => i.IdProducto == inventario.IdProducto);
+                var inventarioExists = await _context.Inv.AnyAsync(i => i.IdProducto == inventarioDto.IdProducto);
                 if (inventarioExists)
                 {
-                    return BadRequest(new { message = $"Ya existe un registro de inventario para el producto con ID {inventario.IdProducto}" });
+                    return BadRequest(new { message = $"Ya existe un registro de inventario para el producto con ID {inventarioDto.IdProducto}" });
                 }
 
-                inventario.UltimaEntrada = DateTime.Now;
+                // Crear la entidad SIN asignar el Producto completo
+                var inventario = new Inventario
+                {
+                    IdProducto = inventarioDto.IdProducto, // Solo asignar el ID
+                    StockActual = inventarioDto.StockActual,
+                    StockMinimo = inventarioDto.StockMinimo,
+                    StockIdeal = inventarioDto.StockIdeal,
+                    UltimaEntrada = DateTime.Now
+                    // NO asignar Producto = producto aquí
+                };
+
                 _context.Inv.Add(inventario);
                 await _context.SaveChangesAsync();
 
                 await RegistrarBitacora("CREACIÓN", "INVENTARIO", inventario.IdInventario,
-                    $"Nuevo registro creado para producto ID {inventario.IdProducto} con stock inicial {inventario.StockActual}");
+                    $"Nuevo registro creado para producto ID {inventario.IdProducto}");
 
                 return CreatedAtAction(nameof(GetInventarioById), new { id = inventario.IdInventario }, inventario);
             }
+            catch (DbUpdateException dbEx)
+            {
+                // Capturar el error interno específico
+                string errorDetail = dbEx.InnerException?.Message ?? dbEx.Message;
+
+                // Loggear el error completo
+                _logger.LogError(dbEx, "Error de base de datos al crear inventario. Detalle: {ErrorDetail}", errorDetail);
+
+                return StatusCode(500, new
+                {
+                    message = "Error de base de datos al guardar",
+                    details = errorDetail,
+                    entityState = dbEx.Entries?.Select(e => new {
+                        Entity = e.Entity.GetType().Name,
+                        State = e.State.ToString()
+                    })
+                });
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al crear nuevo registro de inventario");
-                return StatusCode(500, new { message = "Error interno al crear inventario", details = ex.Message });
+                _logger.LogError(ex, "Error inesperado al crear inventario");
+                return StatusCode(500, new
+                {
+                    message = "Error interno al crear inventario",
+                    details = ex.Message
+                });
             }
         }
 
         // PUT: api/Inventario/5
         [HttpPut("{id:int}")]
         [Authorize(Roles = "1")]
-        
+
         public async Task<IActionResult> UpdateInventario(int id, [FromBody] Inventario inventario)
         {
             try
@@ -219,7 +255,7 @@ namespace AppiNon.Controllers
         }
 
 
-      //  #region Métodos Privados
+        //  #region Métodos Privados
 
         private bool InventarioExists(int id)
         {
@@ -262,52 +298,11 @@ namespace AppiNon.Controllers
         //// RegistrosPedidos//////////////////////////////////////////////////////////////////////////////////////////
         ///
 
-        [HttpPost("CrearPedido")]
-        [Authorize(Roles = "1")]
-        public async Task<IActionResult> CrearPedido(PedidoDto pedidos)
-        {
-            try
-            {
-                var productoExiste = await _context.Producto.FindAsync(pedidos.IdProducto);
-                if (productoExiste == null)
-                {
-                    return BadRequest("Producto o proveedor no válido.");
-                }
-                // Crear pedido
-                var pedido = new Pedido
-                {
-                    IdPedido=0,
-                    IdProducto = pedidos.IdProducto,
-                    Cantidad = pedidos.Cantidad,
-                    Estado = "Pendiente",
-                    IdProveedor = pedidos.IdProveedor,
-                    FechaSolicitud= DateTime.Now,
-                    FechaRecepcion=null,
-                    SolicitadoPor=pedidos.SolicitadoPor
-    };
 
-                _context.Pedidos.Add(pedido);
-                await _context.SaveChangesAsync();
-                return Ok(pedido);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al crear pedido");
-                return StatusCode(500, "Error interno");
-            }
-        }
 
-        // DTO para recibir datos
-        public class PedidoDto
-        {
-           public int IdPedido { get; set; }
-            public string SolicitadoPor { get; set; }
-        
-            public int IdProducto { get; set; }
-            public int Cantidad { get; set; }
-            public int IdProveedor { get; set; }
 
-        }
+        // Método auxiliar para bitácora
+
         /////////////////////////////////////////////////Actualizar Pedido
         ///
 
@@ -360,19 +355,23 @@ namespace AppiNon.Controllers
         public async Task<IActionResult> GetPedidosPendientes()
         {
             var pedidos = await _context.Pedidos
-                
                 .Include(p => p.Producto)
                 .Include(p => p.Proveedor)
+                .Select(p => new
+                {
+                    p.IdPedido,
+                    p.Cantidad,
+                    FechaSolicitud = p.FechaSolicitud,
+                    FechaRecepcion = p.FechaRecepcion.HasValue ? p.FechaRecepcion.Value.ToString("yyyy-MM-dd") : "Pendiente",
+                    ProductoNombre = p.Producto != null ? p.Producto.Nombre_producto : "No asignado",
+                    ProveedorNombre = p.Proveedor != null ? p.Proveedor.Nombre_Proveedor : "No asignado",
+                    RecibidoPor = !string.IsNullOrEmpty(p.RecibidoPor) ? p.RecibidoPor : "No recibido",
+                    Estado = !string.IsNullOrEmpty(p.Estado) ? p.Estado : "Pendiente"
+                })
                 .ToListAsync();
 
             return Ok(pedidos);
         }
-
-
-
-
-
-
     }
-}
+    }
 

@@ -41,7 +41,6 @@ namespace AppiNon.Models
         public int StockMinimo { get; set; }
         public int StockIdeal { get; set; }
         public DateTime UltimaEntrada { get; set; }
-
         public virtual Producto Producto { get; set; } // navegación inversa
                                                        //
                                                        //
@@ -69,11 +68,18 @@ namespace AppiNon.Models
     {
         public int ID { get; set; }
         public DateTime Fecha { get; set; }
-        public string Tipo_de_Modificacion { get; set; } = null!;
-        public int ID_Usuario { get; set; }
-        public string Entidad { get; set; }
-        public int ID_Entidad { get; set; }
-        public string Descripcion { get; set; } = null!;
+        //public string Tipo_de_Modificacion { get; set; } = null!;
+     //   public int ID_Usuario { get; set; }
+     //   public string Entidad { get; set; }
+       // public int ID_Entidad { get; set; }
+       // public string Descripcion { get; set; } = null!;
+        public string? Tipo_de_Modificacion { get; set; }
+        public string? Entidad { get; set; }
+        public string? Descripcion { get; set; }
+        public int? ID_Usuario { get; set; }
+        public int? ID_Entidad { get; set; }
+
+
     }
 
     public class Pedido
@@ -88,13 +94,16 @@ namespace AppiNon.Models
         public string? SolicitadoPor { get; set; } // Usuario que lo solicitó (para manuales)
 
         [ForeignKey("IdProducto")]
-        public virtual Producto Producto { get; set; } = null!;
+        public virtual Producto Producto { get; set; } 
 
         [ForeignKey("IdProveedor")]
-        public virtual Proveedores Proveedor { get; set; } = null!;
+        public virtual Proveedores Proveedor { get; set; } 
+ 
+        public String RecibidoPor { get; set; } 
+
+
+
     }
-
-
 
 
 
