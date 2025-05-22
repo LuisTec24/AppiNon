@@ -362,6 +362,7 @@ namespace AppiNon.Controllers
                     p.IdPedido,
                     p.Cantidad,
                     FechaSolicitud = p.FechaSolicitud,
+                     p.SolicitadoPor,
                     FechaRecepcion = p.FechaRecepcion.HasValue ? p.FechaRecepcion.Value.ToString("yyyy-MM-dd") : "Pendiente",
                     ProductoNombre = p.Producto != null ? p.Producto.Nombre_producto : "No asignado",
                     ProveedorNombre = p.Proveedor != null ? p.Proveedor.Nombre_Proveedor : "No asignado",

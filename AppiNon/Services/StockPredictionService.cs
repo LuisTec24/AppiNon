@@ -25,26 +25,26 @@ namespace AppiNon.Services
         {
             _logger.LogInformation("Servicio de Predicción de Stock iniciado.");
 
-            //while (!stoppingToken.IsCancellationRequested)
-            //{
-            //    var ahora = DateTime.Now;
-            //    var primerDiaProximoMes = new DateTime(ahora.Year, ahora.Month, 1).AddMonths(1);
-            //    var tiempoEspera = primerDiaProximoMes - ahora;
+            while (!stoppingToken.IsCancellationRequested)//si no esta suspendido osea si es primeros del mes
+            {
+                var ahora = DateTime.Now;
+                var primerDiaProximoMes = new DateTime(ahora.Year, ahora.Month, 1).AddMonths(1);
+                var diaAntesDelNuevoMes = primerDiaProximoMes.AddDays(-1);
+                var tiempoEspera = diaAntesDelNuevoMes - ahora;
 
-            //    await Task.Delay(tiempoEspera, stoppingToken);
+                await Task.Delay(tiempoEspera, stoppingToken);//espera el dia, despues inicia
 
-            //    try
-            //    {
+                try
+                {
                     using var scope = _services.CreateScope();
                     var db = scope.ServiceProvider.GetRequiredService<PinonBdContext>();
-
                     await ProcesarPredicciones(db);
-                //}
-                //catch (Exception ex)
-                //{
-                //    _logger.LogError(ex, "Error en el servicio de predicción");
-                //}
-            //}
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error en el servicio de predicción");
+                }
+            }
         }
 
         private async Task ProcesarPredicciones(PinonBdContext db)
@@ -111,8 +111,9 @@ namespace AppiNon.Services
                 if (!await pedidos.AnyAsync())
                 {
                     _logger.LogInformation($"Producto {producto.Id_producto} omitido: sin pedidos entregados (nuevo producto).");
+                    //devuelve ceros
                     return (0, 0, metodo); // No predicción, omitir producto
-                }
+                } 
 
                 consumo = await pedidos.AverageAsync(p => (double)p.Cantidad);
             }
