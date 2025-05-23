@@ -65,6 +65,7 @@ namespace AppiNon.Controllers
                         Message = "No existe inventario para este producto. Redirigir a la creación de inventario."
                     });
                 }
+                
 
                 // 5. Verificar pedidos pendientes existentes
                 var tienePedidosPendientes = await _db.Pedidos
