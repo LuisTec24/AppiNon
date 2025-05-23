@@ -94,12 +94,14 @@ namespace AppiNon.Services
             if (metodo == "Automatico")
             {
                 var historialCount = await db.Pedidos
-                    .Where(p => p.IdProducto == producto.Id_producto)
+                    .Where(p => p.IdProducto == producto.Id_producto && p.Estado == "Entregado")
                     .CountAsync();
 
-                metodo = historialCount < 12 ? "General" :
-                        await TieneEstacionalidad(producto.Id_producto, db) ? "Mensual" : "General";
+                metodo = historialCount < 12
+                    ? "General"
+                    : await TieneEstacionalidad(producto.Id_producto, db) ? "Mensual" : "General";
             }
+
             double consumo;
 
             if (metodo == "General")
@@ -107,13 +109,12 @@ namespace AppiNon.Services
                 var pedidos = db.Pedidos
                     .Where(p => p.IdProducto == producto.Id_producto && p.Estado == "Entregado");
 
-                // Omitir el producto si no hay pedidos entregados
-                if (!await pedidos.AnyAsync())
+                var count = await pedidos.CountAsync();
+                if (count < 3)
                 {
-                    _logger.LogInformation($"Producto {producto.Id_producto} omitido: sin pedidos entregados (nuevo producto).");
-                    //devuelve ceros
-                    return (0, 0, metodo); // No predicción, omitir producto
-                } 
+                    _logger.LogInformation($"Producto {producto.Id_producto} omitido: solo {count} pedidos entregados.");
+                    return (0, 0, metodo);
+                }
 
                 consumo = await pedidos.AverageAsync(p => (double)p.Cantidad);
             }
@@ -127,11 +128,11 @@ namespace AppiNon.Services
                                 p.FechaRecepcion.HasValue &&
                                 p.FechaRecepcion.Value.Month == mesActual);
 
-                // Omitir el producto si no hay pedidos entregados este mes
-                if (!await pedidosMes.AnyAsync())
+                var count = await pedidosMes.CountAsync();
+                if (count < 3)
                 {
-                    _logger.LogInformation($"Producto {producto.Id_producto} omitido: sin pedidos entregados este mes.");
-                    return (0, 0, metodo); // No predicción, omitir producto
+                    _logger.LogInformation($"Producto {producto.Id_producto} omitido: solo {count} pedidos entregados este mes.");
+                    return (0, 0, metodo);
                 }
 
                 consumo = await pedidosMes.AverageAsync(p => (double)p.Cantidad);
@@ -143,6 +144,7 @@ namespace AppiNon.Services
                 metodo
             );
         }
+
 
 
         private async Task<bool> TieneEstacionalidad(int productoId, PinonBdContext db)

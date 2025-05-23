@@ -307,22 +307,27 @@ namespace AppiNon.Controllers
         ///
 
         [HttpPut("ActualizarEstadoPedido/{idPedido}")]
-        [Authorize(Roles = "1")]
-        public async Task<IActionResult> ActualizarEstadoPedido(int idPedido, [FromBody] string nuevoEstado)
+        [Authorize(Roles = "1,2")]
+        public async Task<IActionResult> ActualizarEstadoPedido(int IdPedido, [FromBody] EstadoRequest request)
         {
             try
             {
-                var pedido = await _context.Pedidos.FindAsync(idPedido);
-                if (pedido == null) return NotFound("Pedido no encontrado");
+                _logger.LogInformation("EstadoRequest recibido: {@Request}", request);
+
+                var nuevoEstado = request.Estado;
+                var pedido = await _context.Pedidos.FindAsync(IdPedido);
+                if (pedido == null)
+                    return NotFound("Pedido no encontrado");
 
                 // Validar estado
                 if (!new[] { "Pendiente", "Enviado", "Recibido", "Cancelado" }.Contains(nuevoEstado))
-                    return BadRequest("Estado no válido");
+                    return BadRequest("Estado no valido");
 
-                // Si se recibe, actualizar inventario
+                // Si se recibe, actualizar inventario, fecha y recibido por
                 if (nuevoEstado == "Recibido")
                 {
                     pedido.FechaRecepcion = DateTime.Now;
+                    pedido.RecibidoPor = User.Identity?.Name ?? "Desconocido";
 
                     var inventario = await _context.Inv.FirstOrDefaultAsync(i => i.IdProducto == pedido.IdProducto);
                     if (inventario != null)
@@ -340,11 +345,9 @@ namespace AppiNon.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar estado del pedido");
-                return StatusCode(500, "Error interno");
+                return StatusCode(500, new { message = "Error interno", details = ex.Message });
             }
         }
-
-
 
 
         ////--------------------Consultar Pedidos

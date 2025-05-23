@@ -90,7 +90,7 @@ namespace AppiNon.Controllers
                     IdProveedor = proveedor.ID_proveedor,
                     FechaSolicitud = DateTime.Now,
                     FechaRecepcion = null,
-                    SolicitadoPor = User.Identity?.Name ?? "Sistema",
+                    SolicitadoPor = User.Identity?.Name ?? "Desconocido",
                 };
 
                 _db.Pedidos.Add(pedido);

@@ -84,6 +84,10 @@ namespace AppiNon.Models
 
     public class Pedido
     {
+
+      //  public DateTime? FechaRecepcion { get; set; }
+        public string? RecibidoPor { get; set; }
+
         public int IdPedido { get; set; }
         public int IdProducto { get; set; }
         public int Cantidad { get; set; }
@@ -99,12 +103,16 @@ namespace AppiNon.Models
         [ForeignKey("IdProveedor")]
         public virtual Proveedores Proveedor { get; set; } 
  
-        public String RecibidoPor { get; set; } 
+      //  public String RecibidoPor { get; set; } 
 
 
 
     }
 
+    public class EstadoRequest
+    {
+        public string Estado { get; set; }
+    }
 
 
 
