@@ -1,4 +1,5 @@
-﻿using AppiNon.Models;
+﻿using AppiNon.Controllers;
+using AppiNon.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -82,6 +83,17 @@ namespace AppiNon.Services
                             await db.SaveChangesAsync();
 
                             _logger.LogInformation($"Pedido automático {nuevoPedido.IdPedido} generado para {item.Producto.Nombre_producto}");
+
+
+                            var correo = new Correo();
+                            string asunto = "Nuevo pedido generado";
+                            string cuerpo = $"Se ha generado un pedido para el producto {item.Producto.Nombre_producto}.\n" +
+                                            $"Cantidad: {nuevoPedido.Cantidad}\n" +
+                                            $"Fecha: {nuevoPedido.FechaSolicitud:dd/MM/yyyy hh:mm tt}";
+
+                            var Prueba = "lg4595422@gmail.com";//ajustar correo aqui iria el correo del provedor
+
+                            correo.EnviarCorreo(Prueba, asunto, cuerpo);
                         }
                     }
 

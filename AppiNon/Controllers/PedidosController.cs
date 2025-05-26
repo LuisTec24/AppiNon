@@ -31,7 +31,7 @@ namespace AppiNon.Controllers
         /// <param name="request">Datos para la creación del pedido</param>
         /// <returns>Información del pedido creado</returns>
         [HttpPost("CrearPedidoManual")]
-        [Authorize(Roles = "1")]
+        /[Authorize(Roles = "1")]
         [ProducesResponseType(200, Type = typeof(object))]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -106,7 +106,8 @@ namespace AppiNon.Controllers
                 string cuerpo = $"Se ha generado un pedido para el producto {producto.Nombre_producto}.\n" +
                                 $"Cantidad: {pedido.Cantidad}\n" +
                                 $"Fecha: {pedido.FechaSolicitud:dd/MM/yyyy hh:mm tt}";
-                var Prueba = "lg4595422@gmail.com";
+
+                var Prueba = "lg4595422@gmail.com";//ajustar correo aqui iria el correo del provedor
 
                 correo.EnviarCorreo(Prueba, asunto, cuerpo);
 
