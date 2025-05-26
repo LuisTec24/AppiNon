@@ -63,7 +63,7 @@ namespace AppiNon.Controllers
 
             var consumoDiario = await _db.Pedidos
                 .Where(p => p.IdProducto == idProducto &&
-                           p.Estado == "Entregado" &&
+                           p.Estado == "Recibido" &&
                            p.FechaRecepcion >= DateTime.Now.AddMonths(-3))
                 .GroupBy(p => 1)
                 .Select(g => new {

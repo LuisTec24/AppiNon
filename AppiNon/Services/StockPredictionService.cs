@@ -47,7 +47,7 @@ namespace AppiNon.Services
             }
         }
 
-        private async Task ProcesarPredicciones(PinonBdContext db)
+        public async Task ProcesarPredicciones(PinonBdContext db)
         {
             var productos = await db.Producto
                 .Where(p => p.Reabastecimientoautomatico)
@@ -73,10 +73,9 @@ namespace AppiNon.Services
                         StockMinimoCalculado = minimo,
                         StockIdealCalculado = ideal,
                         MetodoUsado = metodo
-                    });
+                    }); 
 
                     await db.SaveChangesAsync();
-
                     _logger.LogInformation($"Predicción actualizada para {producto.Nombre_producto} " +
                                             $"(Método: {metodo}) - Mínimo: {minimo}, Ideal: {ideal}");
                 }
@@ -87,62 +86,85 @@ namespace AppiNon.Services
             }
         }
 
+
+
+
+
         private async Task<(int minimo, int ideal, string metodo)> CalcularNivelesStock(Producto producto, PinonBdContext db)
         {
+            // 1. Determinar el método de predicción
             var metodo = producto.Metodoprediccion ?? "Automatico";
-
             if (metodo == "Automatico")
             {
                 var historialCount = await db.Pedidos
-                    .Where(p => p.IdProducto == producto.Id_producto && p.Estado == "Entregado")
+                    .Where(p => p.IdProducto == producto.Id_producto && p.Estado == "Recibido")
                     .CountAsync();
-
-                metodo = historialCount < 12
-                    ? "General"
-                    : await TieneEstacionalidad(producto.Id_producto, db) ? "Mensual" : "General";
+                metodo = historialCount < 12 ? "General" :
+                       await TieneEstacionalidad(producto.Id_producto, db) ? "Mensual" : "General";
             }
 
-            double consumo;
-
+            // 2. Calcular consumo mensual ajustado
+            double consumoMensual;
             if (metodo == "General")
             {
-                var pedidos = db.Pedidos
-                    .Where(p => p.IdProducto == producto.Id_producto && p.Estado == "Entregado");
+                var pedidos = await db.Pedidos
+                    .Where(p => p.IdProducto == producto.Id_producto && p.Estado == "Recibido")
+                    .OrderBy(p => p.FechaRecepcion)
+                    .ToListAsync();
 
-                var count = await pedidos.CountAsync();
-                if (count < 3)
-                {
-                    _logger.LogInformation($"Producto {producto.Id_producto} omitido: solo {count} pedidos entregados.");
-                    return (0, 0, metodo);
-                }
+                if (pedidos.Count < 3)
+                    return (5, 15, "Por defecto (datos insuficientes)");
 
-                consumo = await pedidos.AverageAsync(p => (double)p.Cantidad);
+                // Calcular consumo considerando el período real
+                var diasPeriodo = (pedidos.Last().FechaRecepcion - pedidos.First().FechaRecepcion)?.TotalDays ?? 30;
+                if (diasPeriodo < 30) diasPeriodo = 30; // Mínimo 1 mes
+
+                var totalConsumo = pedidos.Sum(p => p.Cantidad);
+                consumoMensual = (totalConsumo / diasPeriodo) * 30;
             }
             else // Método Mensual
             {
                 var mesActual = DateTime.Now.Month;
-
-                var pedidosMes = db.Pedidos
+                var pedidosMes = await db.Pedidos
                     .Where(p => p.IdProducto == producto.Id_producto &&
-                                p.Estado == "Entregado" &&
-                                p.FechaRecepcion.HasValue &&
-                                p.FechaRecepcion.Value.Month == mesActual);
+                               p.Estado == "Recibido" &&
+                               p.FechaRecepcion.HasValue &&
+                               p.FechaRecepcion.Value.Month == mesActual)
+                    .ToListAsync();
 
-                var count = await pedidosMes.CountAsync();
-                if (count < 3)
-                {
-                    _logger.LogInformation($"Producto {producto.Id_producto} omitido: solo {count} pedidos entregados este mes.");
-                    return (0, 0, metodo);
-                }
+                if (pedidosMes.Count < 3)
+                    return (5, 15, "Por defecto (datos insuficientes)");
 
-                consumo = await pedidosMes.AverageAsync(p => (double)p.Cantidad);
+                consumoMensual = pedidosMes.Average(p => p.Cantidad);
             }
 
-            return (
-                (int)Math.Ceiling(consumo * (double)GetFactor("FACTOR_STOCK_MINIMO", db)),
-                (int)Math.Ceiling(consumo * (double)GetFactor("FACTOR_STOCK_IDEAL", db)),
-                metodo
-            );
+            // 3. Obtener parámetros
+            var proveedor = await db.Proveedores.FirstOrDefaultAsync(p => p.ID_proveedor == producto.Id_provedor);
+            int diasEntrega = proveedor?.Tiempo_entrega_dias ?? 5;
+            double factorMinimo = 1.30; // Valor fijo según tu parámetro
+            double factorIdeal = 1.80;  // Valor fijo según tu parámetro
+
+            // 4. Cálculos mejorados
+            double consumoDiario = consumoMensual / 30;
+
+            // Stock mínimo: cubre tiempo de entrega + 7 días de seguridad
+            int minimo = (int)Math.Ceiling(consumoDiario * (diasEntrega + 7) * factorMinimo);
+
+            // Stock ideal: cubre tiempo de entrega + 1 mes de operación
+            int ideal = (int)Math.Ceiling(consumoDiario * (diasEntrega + 30) * factorIdeal);
+
+            // 5. Aplicar límites razonables
+            minimo = Math.Max(minimo, 5); // Mínimo absoluto de 5 unidades
+            ideal = Math.Max(ideal, minimo * 2); // Ideal debe ser al menos el doble del mínimo
+
+            // Para productos con muy bajo consumo, establecer máximos
+            if (consumoMensual < 10)
+            {
+                minimo = Math.Min(minimo, 10);
+                ideal = Math.Min(ideal, 30);
+            }
+
+            return (minimo, ideal, metodo);
         }
 
 

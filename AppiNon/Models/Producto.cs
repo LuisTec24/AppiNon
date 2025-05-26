@@ -79,7 +79,6 @@ namespace AppiNon.Models
         public int? ID_Usuario { get; set; }
         public int? ID_Entidad { get; set; }
 
-
     }
 
     public class Pedido
@@ -104,8 +103,6 @@ namespace AppiNon.Models
         public virtual Proveedores Proveedor { get; set; } 
  
       //  public String RecibidoPor { get; set; } 
-
-
 
     }
 

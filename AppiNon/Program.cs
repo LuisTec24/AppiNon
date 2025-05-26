@@ -51,30 +51,29 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("User", policy => policy.RequireRole("2"));
 });
 
-// 6. Servicios en segundo plano
-builder.Services.AddHostedService<StockPredictionService>();
-builder.Services.AddHostedService<ReabastecimientoWorker>();
+// Servicios en segundo plano
+
+//builder.Services.AddHostedService<StockPredictionService>();
+//builder.Services.AddHostedService<ReabastecimientoWorker>();
 
 var app = builder.Build();
 
-// Configuración del pipeline HTTP
 
-// A. CORS
 app.UseCors(corsPolicy);
 
-// B. Swagger solo en desarrollo
+// B. Swagger 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// C. Middlewares esenciales (ORDEN IMPORTANTE)
+
 app.UseHttpsRedirection();
 app.UseAuthentication();  // Primero autenticación
 app.UseAuthorization();   // Luego autorización
 
-// D. Mapeo de controladores
+
 app.MapControllers();
 
 app.Run();

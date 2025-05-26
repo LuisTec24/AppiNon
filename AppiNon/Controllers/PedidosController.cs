@@ -101,6 +101,15 @@ namespace AppiNon.Controllers
                 await RegistrarBitacora("Creación", "Pedido", pedido.IdPedido,
                     $"Pedido manual creado para producto {producto.Nombre_producto}");
 
+                var correo = new Correo();
+                string asunto = "Nuevo pedido generado";
+                string cuerpo = $"Se ha generado un pedido para el producto {producto.Nombre_producto}.\n" +
+                                $"Cantidad: {pedido.Cantidad}\n" +
+                                $"Fecha: {pedido.FechaSolicitud:dd/MM/yyyy hh:mm tt}";
+                var Prueba = "lg4595422@gmail.com";
+
+                correo.EnviarCorreo(Prueba, asunto, cuerpo);
+
                 // 9. Retornar respuesta
                 return Ok(new
                 {
@@ -112,6 +121,7 @@ namespace AppiNon.Controllers
                     Estado = pedido.Estado,
                     FechaSolicitud = pedido.FechaSolicitud,
                 });
+              
             }
             catch (Exception ex)
             {
