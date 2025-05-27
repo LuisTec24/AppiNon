@@ -91,7 +91,7 @@ namespace AppiNon.Services
                                             $"Cantidad: {nuevoPedido.Cantidad}\n" +
                                             $"Fecha: {nuevoPedido.FechaSolicitud:dd/MM/yyyy hh:mm tt}";
 
-                            var Prueba = "lg4595422@gmail.com";//ajustar correo aqui iria el correo del provedor
+                            var Prueba = proveedor.Correo!;//ajustar correo aqui iria el correo del provedor
 
                             correo.EnviarCorreo(Prueba, asunto, cuerpo);
                         }

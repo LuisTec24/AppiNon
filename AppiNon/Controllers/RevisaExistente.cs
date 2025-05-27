@@ -79,6 +79,24 @@ namespace AppiNon.Controllers
             return Ok(nuevoUsuario);
         }
 
+
+
+        [HttpGet("VerificarCorreo")]
+        [Authorize(Roles = "1")]
+        public async Task<IActionResult> VerificarCorreo([FromQuery] string correo)
+        {
+            if (string.IsNullOrWhiteSpace(correo))
+            {
+                return BadRequest("El correo no puede estar vacío");
+            }
+
+            // Verifica si el correo existe en la tabla de usuarios (o proveedores, según tu modelo)
+            bool existe = await _context.Usuarios.AnyAsync(u => u.Correo == correo);
+
+            return Ok(new { existe });
+        }
+
+
         [HttpPut("{correo}")]
         [Authorize(Roles = "1")]
 

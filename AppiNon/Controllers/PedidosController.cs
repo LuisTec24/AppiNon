@@ -31,7 +31,7 @@ namespace AppiNon.Controllers
         /// <param name="request">Datos para la creación del pedido</param>
         /// <returns>Información del pedido creado</returns>
         [HttpPost("CrearPedidoManual")]
-        /[Authorize(Roles = "1")]
+        //[Authorize(Roles = "1")]
         [ProducesResponseType(200, Type = typeof(object))]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -97,9 +97,7 @@ namespace AppiNon.Controllers
                 _db.Pedidos.Add(pedido);
                 await _db.SaveChangesAsync();
 
-                // 8. Registrar en bitácora
-                await RegistrarBitacora("Creación", "Pedido", pedido.IdPedido,
-                    $"Pedido manual creado para producto {producto.Nombre_producto}");
+              
 
                 var correo = new Correo();
                 string asunto = "Nuevo pedido generado";
@@ -107,9 +105,13 @@ namespace AppiNon.Controllers
                                 $"Cantidad: {pedido.Cantidad}\n" +
                                 $"Fecha: {pedido.FechaSolicitud:dd/MM/yyyy hh:mm tt}";
 
-                var Prueba = "lg4595422@gmail.com";//ajustar correo aqui iria el correo del provedor
+                var Prueba = proveedor.Correo!;//ajustar correo aqui iria el correo del provedor
 
                 correo.EnviarCorreo(Prueba, asunto, cuerpo);
+
+                // 8. Registrar en bitácora
+                await RegistrarBitacora("Creación", "Pedido", pedido.IdPedido,
+                    $"Pedido manual creado para producto {producto.Nombre_producto}");
 
                 // 9. Retornar respuesta
                 return Ok(new
@@ -122,6 +124,7 @@ namespace AppiNon.Controllers
                     Estado = pedido.Estado,
                     FechaSolicitud = pedido.FechaSolicitud,
                 });
+
               
             }
             catch (Exception ex)

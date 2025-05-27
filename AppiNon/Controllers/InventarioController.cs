@@ -307,7 +307,7 @@ namespace AppiNon.Controllers
         ///
 
         [HttpPut("ActualizarEstadoPedido/{idPedido}")]
-        [Authorize(Roles = "1,2")]
+        [Authorize(Roles = "1,2,3")]
         public async Task<IActionResult> ActualizarEstadoPedido(int IdPedido, [FromBody] EstadoRequest request)
         {
             try
@@ -322,6 +322,10 @@ namespace AppiNon.Controllers
                 // Validar estado
                 if (!new[] { "Pendiente", "Enviado", "Recibido", "Cancelado" }.Contains(nuevoEstado))
                     return BadRequest("Estado no valido");
+
+                //  Si ya está recibido, NO permitir cambiarlo de nuevo
+                if (pedido.Estado == "Recibido")
+                    return BadRequest("Este pedido ya fue recibido anteriormente y no puede volver a registrarse.");
 
                 // Si se recibe, actualizar inventario, fecha y recibido por
                 if (nuevoEstado == "Recibido")
@@ -377,6 +381,81 @@ namespace AppiNon.Controllers
             return Ok(pedidos);
         }
 
+        public class SalidaProductoRequest
+        {
+            public int IdProducto { get; set; }
+            public int Cantidad { get; set; }
+        }
+        public class SalidaMultipleRequest
+        {
+            public List<SalidaProductoRequest> Salidas { get; set; }
+        }
+
+        [HttpPost("registrar-salidas")]
+        [Authorize(Roles = "1,2,3")]
+        public async Task<IActionResult> RegistrarSalidas([FromBody] SalidaMultipleRequest request)
+        {
+            if (request.Salidas == null || !request.Salidas.Any())
+                return BadRequest("No se recibieron productos para registrar");
+
+            foreach (var salida in request.Salidas)
+            {
+                var inventario = await _context.Inv.FirstOrDefaultAsync(i => i.IdProducto == salida.IdProducto);
+
+                if (inventario == null)
+                    return NotFound($"Inventario no encontrado para producto {salida.IdProducto}");
+
+                if (inventario.StockActual < salida.Cantidad)
+                    return BadRequest($"No hay suficiente inventario para producto {salida.IdProducto}");
+
+                // restar del inventario
+                inventario.StockActual -= salida.Cantidad;
+
+                // registrar en bitácora si tienes
+                await RegistrarBitacora("Salida", "Inventario", inventario.IdInventario,
+                    $"Salida registrada de {salida.Cantidad} unidades para producto {salida.IdProducto}");
+            }
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Success = true, Message = "Salidas registradas correctamente" });
+        }
+
+
+
+
+        [HttpGet("MisPedidosProvedor")]
+        [Authorize(Roles = "3")] // rol del proveedor
+        public async Task<IActionResult> GetMisPedidosProvedor()
+        {
+            // obtener el correo del usuario desde el token
+            var correo = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(correo))
+                return Unauthorized("no se encontro el correo del usuario.");
+             // buscar el proveedor que tenga ese correo
+            var proveedor = await _context.Proveedores.FirstOrDefaultAsync(p => p.Correo == correo);
+
+            if (proveedor == null)
+                return NotFound("proveedor no encontrado con el correo actual.");
+
+            // buscar los pedidos relacionados a ese proveedor
+            var pedidos = await _context.Pedidos
+                .Include(p => p.Producto)
+                .Where(p => p.IdProveedor == proveedor.ID_proveedor)
+                .Select(p => new
+                {
+                    p.IdPedido,
+                    p.Cantidad,
+                    FechaSolicitud = p.FechaSolicitud,
+                    p.SolicitadoPor,
+                    FechaRecepcion = p.FechaRecepcion.HasValue ? p.FechaRecepcion.Value.ToString("yyyy-MM-dd") : "Pendiente",
+                    ProductoNombre = p.Producto != null ? p.Producto.Nombre_producto : "No asignado",
+                    RecibidoPor = !string.IsNullOrEmpty(p.RecibidoPor) ? p.RecibidoPor : "No recibido",
+                    Estado = !string.IsNullOrEmpty(p.Estado) ? p.Estado : "Pendiente"
+                })
+                .ToListAsync();
+
+            return Ok(pedidos);
+        }
 
     }
     }

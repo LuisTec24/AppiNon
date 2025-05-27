@@ -26,8 +26,8 @@ public partial class PinonBdContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=LAPTOP-0CSF1UKT; DataBase=PinonBD;Integrated Security=true; TrustServerCertificate=True");
-
+        => //optionsBuilder.UseSqlServer("Server=LAPTOP-0CSF1UKT; DataBase=PinonBD;Integrated Security=true; TrustServerCertificate=True");
+    optionsBuilder.UseSqlServer("Server=LUIS; DataBase=PinonBD;Integrated Security=true; TrustServerCertificate=True");
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Categorias>(entity =>  {
@@ -41,6 +41,7 @@ public partial class PinonBdContext : DbContext
             entity.Property(e => e.Nombre_Proveedor).HasMaxLength(255);
             entity.Property(e => e.Tiempo_entrega_dias).HasColumnType("int"); // Cambiado a int
             entity.Property(e => e.Telefono).HasMaxLength(25);
+            entity.Property(e => e.Correo).HasMaxLength(255);
         });
 
         modelBuilder.Entity<Roles>(entity =>
