@@ -306,6 +306,7 @@ namespace AppiNon.Controllers
         /////////////////////////////////////////////////Actualizar Pedido
         ///
 
+
         [HttpPut("ActualizarEstadoPedido/{idPedido}")]
         [Authorize(Roles = "1,2,3")]
         public async Task<IActionResult> ActualizarEstadoPedido(int IdPedido, [FromBody] EstadoRequest request)
@@ -314,21 +315,19 @@ namespace AppiNon.Controllers
             {
                 _logger.LogInformation("EstadoRequest recibido: {@Request}", request);
 
-                var nuevoEstado = request.Estado;
                 var pedido = await _context.Pedidos.FindAsync(IdPedido);
                 if (pedido == null)
-                    return NotFound("Pedido no encontrado");
+                    return NotFound(new { success = false, message = "Pedido no encontrado" }); // <-- Ahora es JSON
 
                 // Validar estado
-                if (!new[] { "Pendiente", "Enviado", "Recibido", "Cancelado" }.Contains(nuevoEstado))
-                    return BadRequest("Estado no valido");
+                if (!new[] { "Pendiente", "Enviado", "Recibido", "Rechazado" }.Contains(request.Estado))
+                    return BadRequest(new { success = false, message = "Estado no válido" }); // <-- JSON
 
-                //  Si ya está recibido, NO permitir cambiarlo de nuevo
                 if (pedido.Estado == "Recibido")
-                    return BadRequest("Este pedido ya fue recibido anteriormente y no puede volver a registrarse.");
+                    return BadRequest(new { success = false, message = "Este pedido ya fue recibido y no puede modificarse" });
 
-                // Si se recibe, actualizar inventario, fecha y recibido por
-                if (nuevoEstado == "Recibido")
+                // Lógica de actualización
+                if (request.Estado == "Recibido")
                 {
                     pedido.FechaRecepcion = DateTime.Now;
                     pedido.RecibidoPor = User.Identity?.Name ?? "Desconocido";
@@ -341,15 +340,15 @@ namespace AppiNon.Controllers
                     }
                 }
 
-                pedido.Estado = nuevoEstado;
+                pedido.Estado = request.Estado;
                 await _context.SaveChangesAsync();
 
-                return Ok(pedido);
+                return Ok(new { success = true, pedido }); // <-- Estructura consistente
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar estado del pedido");
-                return StatusCode(500, new { message = "Error interno", details = ex.Message });
+                return StatusCode(500, new { success = false, message = "Error interno", details = ex.Message });
             }
         }
 
