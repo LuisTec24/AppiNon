@@ -59,7 +59,13 @@ namespace AppiNon.Services
                 {
                     var (minimo, ideal, metodo) = await CalcularNivelesStock(producto, db);
 
-                    var inventario = await db.Inv.FirstAsync(i => i.IdProducto == producto.Id_producto);
+                    var inventario = await db.Inv.FirstOrDefaultAsync(i => i.IdProducto == producto.Id_producto);
+                    if (inventario == null)
+                    {
+                        _logger.LogWarning($"No inventory record found for product {producto.Id_producto}.");
+                        continue; // Skip processing this product
+                    }
+
                     inventario.StockMinimo = minimo;
                     inventario.StockIdeal = ideal;
 
@@ -73,7 +79,7 @@ namespace AppiNon.Services
                         StockMinimoCalculado = minimo,
                         StockIdealCalculado = ideal,
                         MetodoUsado = metodo
-                    }); 
+                    });
 
                     await db.SaveChangesAsync();
                     _logger.LogInformation($"Predicción actualizada para {producto.Nombre_producto} " +
@@ -133,8 +139,15 @@ namespace AppiNon.Services
                     .ToListAsync();
 
                 if (pedidosMes.Count < 3)
-                    return (5, 15, "Por defecto (datos insuficientes)");
-
+                {
+                    var inventario = await db.Inv
+                  .FirstOrDefaultAsync(i => i.IdProducto == producto.Id_producto);
+                    return (
+                                inventario?.StockMinimo ?? 5,
+                                inventario?.StockIdeal ?? 15,
+                                "Por defecto (usando valores registrados en inventario)"
+                            );
+                }
                 consumoMensual = pedidosMes.Average(p => p.Cantidad);
             }
 
